@@ -21,4 +21,6 @@ testpaths = ["tests"]
 [dependency-groups]
 dev = [
     "pytest>=9.1.1",
+    "ipykernel>=6.29",
+    "notebook>=7.0",
 ]

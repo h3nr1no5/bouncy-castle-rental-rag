@@ -63,6 +63,39 @@ Description: Write `src/search.py` that loads the persisted BM25 and FAISS index
 
 ---
 
+## 5.1. Jupyter notebook for closed tasks
+
+### Goal
+
+An `exploration.ipynb` notebook at the project root that demonstrates every function from the completed tasks (1–5) with explanatory markdown, so anyone reading it can understand the full ingest–search pipeline without running the test suite.
+
+### Acceptance criteria
+
+- [ ] `exploration.ipynb` exists at the project root
+- [ ] Notebook cells are preceded by markdown explaining what each cell does and why
+- [ ] Section 1 — Setup: imports from `src.faqs`, `src.pipeline`, `src.ingest`, `src.search`; create a `.tmp/` working directory
+- [ ] Section 2 — Load FAQ Data: calls `load_faqs()`, prints row count (42), displays 3 sample rows, shows column-level missing-value stats
+- [ ] Section 3 — dlt Pipeline: runs `run_pipeline()` into `.tmp/test_faq.duckdb`, queries the loaded table with `duckdb`, re-runs the pipeline and confirms the row count stays the same (idempotency)
+- [ ] Section 4 — Build Indexes: calls `build_indexes(force=True)` with all paths under `.tmp/`, inspects the BM25 pickle count, FAISS index dimensions (ntotal, d), and docs JSON structure
+- [ ] Section 5 — Hybrid Search: calls `search()` with at least three different queries (e.g. "booking", "cost", "safety"), prints ranked results with RRF scores, demonstrates `k=1` vs `k=5` and an empty-query edge case
+- [ ] Section 6 — Cleanup (optional): removes the `.tmp/` directory when the last cell runs
+- [ ] `pyproject.toml` has `ipykernel` and `notebook` in dev dependencies
+- [ ] Running all cells top-to-bottom produces no errors
+
+### Out of scope
+
+- Any open tasks (6–15) — the notebook only covers completed work
+- UI or visualisation beyond printed tables and markdown
+- Embedding or re-implementing logic that already lives in `src/`
+
+### Constraints
+
+- Notebook must import from `src.*` modules — no duplicated logic
+- Temp files (indexes, DuckDB) go in `.tmp/` (gitignored)
+- Follow the same coding conventions as the rest of the project (no pandas, minimal new deps)
+
+---
+
 ## 6. LLM client with Groq + OpenAI fallback
 
 Goal: Create a thin LLM client that calls Groq by default and falls back to OpenAI on failure.

@@ -6,3 +6,5 @@ tests/__pycache__
 faq_ingestion.duckdb
 
 .envrc
+
+.tmp/
