@@ -8,6 +8,8 @@ dependencies = [
     "rank-bm25>=0.2.2",
     "sentence-transformers>=3.4",
     "faiss-cpu>=1.10",
+    "groq>=0.18",
+    "openai>=1.68",
 ]
 
 [project.optional-dependencies]
