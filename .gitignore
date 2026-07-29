@@ -3,5 +3,6 @@ tests/__pycache__
 
 .opencode/
 
+faq_ingestion.duckdb
 
 .envrc

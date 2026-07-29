@@ -3,7 +3,9 @@ name = "llm-zoomcamp-rag"
 version = "0.1.0"
 description = "Bouncy Castle Rental FAQ RAG Agent"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "dlt[duckdb]>=1.29.1",
+]
 
 [project.optional-dependencies]
 dev = [
