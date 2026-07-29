@@ -5,6 +5,9 @@ description = "Bouncy Castle Rental FAQ RAG Agent"
 requires-python = ">=3.11"
 dependencies = [
     "dlt[duckdb]>=1.29.1",
+    "rank-bm25>=0.2.2",
+    "sentence-transformers>=3.4",
+    "faiss-cpu>=1.10",
 ]
 
 [project.optional-dependencies]
@@ -14,3 +17,8 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
