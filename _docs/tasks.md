@@ -10,9 +10,32 @@ Description: Create the directory structure, a minimal `pyproject.toml` (or `req
 
 ## 2. Load and inspect FAQ CSV
 
-Goal: Read the FAQ CSV file and display basic stats (row count, columns, missing values).
+### Goal
 
-Description: Write a script that loads the CSV from `data/`, prints column names and row count, and exposes a `load_faqs()` function the ingestion module can call. Add a test that verifies the CSV is non-empty and has expected columns.
+Provide a `load_faqs()` function in `src/faqs.py` that reads `data/faq.csv`, strips whitespace from values, and returns structured data so downstream ingestion (tasks 3–4) can consume it without worrying about file format or path resolution.
+
+### Acceptance criteria
+
+- [ ] `src/faqs.py` exports `load_faqs()` returning `list[dict[str, str]]` with keys `Category`, `Question`, `Answer`
+- [ ] CSV cell values have leading/trailing whitespace stripped
+- [ ] A `python -m src.faqs` entry point prints `Rows: 42` and the column names
+- [ ] `tests/test_faqs.py` verifies:
+  - the CSV is non-empty (42 rows)
+  - every row has all three non-empty string keys
+  - `load_faqs()` raises `FileNotFoundError` with a clear message when the CSV is missing
+- [ ] The CSV path defaults to `<project_root>/data/faq.csv` and is overridable via an optional `path` argument
+
+### Out of scope
+
+- Data cleaning beyond whitespace stripping (e.g. normalising category names, splitting multi-value fields)
+- Any index building, embeddings, or BM25 (task 4)
+- Any data exploration notebooks or visualisations
+
+### Constraints
+
+- Only stdlib — use `csv` and `pathlib`, no pandas or new dependencies
+- Tests go in `tests/test_faqs.py`
+- Path resolution via `pathlib.Path(__file__).resolve().parents[1] / "data" / "faq.csv"` as the default
 
 ---
 
