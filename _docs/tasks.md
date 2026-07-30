@@ -143,6 +143,35 @@ Description: Write `src/rag.py` that takes a user question, calls `search()` for
 
 ---
 
+## 7.1. Update exploration notebook with RAG pipeline
+
+### Goal
+
+The `exploration.ipynb` notebook demonstrates every closed task from 1–6; this task adds a section for Task 7's `answer_question()` (`src/rag.py`) so the notebook covers the full RAG pipeline end-to-end.
+
+### Acceptance criteria
+
+- [ ] A new top-level markdown heading "7. RAG Pipeline" exists between "6. LLM Client" and the existing "8. Cleanup" sections
+- [ ] The former "7. Cleanup" section is renumbered to "8. Cleanup"
+- [ ] `answer_question` is imported from `src.rag`
+- [ ] A code cell calls `answer_question()` with a sample question (e.g. "What's your cancellation policy?") using the same `.tmp/` indexes built in section 4; if API keys are missing it prints a graceful message instead of crashing
+- [ ] Returned metadata (answer, contexts, model, provider, latency, tokens) is displayed
+- [ ] A code cell demonstrates the empty-context edge case (search returns no results)
+- [ ] All cells run top-to-bottom without errors
+- [ ] No duplicated logic — everything comes from `src.*` imports
+
+### Out of scope
+
+- Any open tasks beyond 7 (8–15) — the notebook only covers completed work
+- Mock-based demonstrations — real calls with graceful key-gated fallback
+
+### Constraints
+
+- Notebook must import from `src.*` modules — no inlined logic
+- API-key‑dependent cells must use `os.environ.get(...)` and fail gracefully
+- Follow the same coding conventions as the rest of the project (no pandas)
+- Sequential run assumed: sections 1–5 must have already built the indexes in `.tmp/`
+
 ## 8. Postgres logging layer
 
 Goal: Log every RAG interaction to a Postgres database.
