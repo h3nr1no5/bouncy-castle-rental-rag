@@ -333,3 +333,37 @@ Description: Document prerequisites (Docker, API keys), setup steps (`cp .env.ex
 Goal: Add sensible error handling, logging, and defaults across the codebase.
 
 Description: Wrap API calls and file operations in try/except blocks with user-friendly fallback messaging. Add structured logging (`import logging`) to key modules. Set sensible defaults for config values (model names, chunk sizes, port numbers) so the project runs out of the box with minimal configuration.
+
+---
+
+## 16. Keyword search evaluation with tunable field weights
+
+### Goal
+
+Add DuckDB-backed keyword search (SQL ILIKE) to the evaluation pipeline alongside the existing hybrid BM25+FAISS search, with tunable per-field weights.
+
+### Acceptance criteria
+
+- [ ] `keyword_search(query, k, db_path, docs_path, field_weights)` added to `src/search.py`
+  - Runs SQL ILIKE on DuckDB `faq.faq_resource` across `Question`, `Answer`, `Category`
+  - `field_weights` controls per-column scoring (default: `{"Question": 2.0, "Answer": 1.0}`)
+  - Returns same result format as `search()`
+- [ ] `evaluate_retrieval()` in `src/evaluate.py` accepts a pluggable `search_fn=` parameter
+  - Defaults to hybrid `search()` for backward compatibility
+  - Extra kwargs forwarded to the search function
+- [ ] Notebook cell evaluates keyword search with `evaluate_retrieval(search_fn=keyword_search, db_path=..., docs_path=...)`
+- [ ] Notebook cell compares hybrid vs keyword hit rate@k and MRR@k side by side
+- [ ] Notebook cell demonstrates tuning `field_weights` and its effect on results
+- [ ] All cells run top-to-bottom without errors
+
+### Out of scope
+
+- Replacing or removing the existing hybrid search
+- Running DuckDB without the dlt pipeline having been executed first
+- Changes to the ground truth or metric computation logic
+
+### Constraints
+
+- Keyword search is DuckDB-only (no Postgres)
+- Sequential run assumed: sections 1–3 must have already loaded DuckDB in `.tmp/`
+- No new dependencies
