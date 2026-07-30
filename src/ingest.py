@@ -32,7 +32,7 @@ def _normalize(embeddings):
     return embeddings / np.maximum(norms, 1e-12)
 
 
-def build_indexes(faqs=None, bm25_path=None, faiss_path=None, docs_path=None, force=False):
+def build_indexes(faqs=None, bm25_path=None, faiss_path=None, docs_path=None, force=False, k1=1.5, b=0.75):
     if faqs is None:
         faqs = load_faqs()
     if bm25_path is None:
@@ -49,7 +49,7 @@ def build_indexes(faqs=None, bm25_path=None, faiss_path=None, docs_path=None, fo
     docs = [_combine_text(row) for row in faqs]
     tokenized = [_tokenize(d) for d in docs]
 
-    bm25 = BM25Okapi(tokenized)
+    bm25 = BM25Okapi(tokenized, k1=k1, b=b)
 
     model = SentenceTransformer(MODEL_NAME)
     embeddings = model.encode(docs, show_progress_bar=False)

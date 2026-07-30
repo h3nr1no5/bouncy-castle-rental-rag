@@ -16,8 +16,6 @@ from src.ingest import (
     _tokenize,
 )
 
-RRF_K = 60
-
 _model = None
 
 
@@ -45,7 +43,7 @@ def _load_indexes(bm25_path=None, faiss_path=None, docs_path=None):
     return bm25, index, docs
 
 
-def search(query, k=5, bm25_path=None, faiss_path=None, docs_path=None):
+def search(query, k=5, rrf_k=60, cat_weight=0, bm25_path=None, faiss_path=None, docs_path=None):
     bm25, index, docs = _load_indexes(bm25_path, faiss_path, docs_path)
 
     tokenized_query = _tokenize(query)
@@ -60,11 +58,22 @@ def search(query, k=5, bm25_path=None, faiss_path=None, docs_path=None):
 
     rrf_scores = {}
     for rank, idx in enumerate(bm25_top_k):
-        rrf_scores[int(idx)] = rrf_scores.get(int(idx), 0) + 1 / (rank + RRF_K)
+        rrf_scores[int(idx)] = rrf_scores.get(int(idx), 0) + 1 / (rank + rrf_k)
     for rank, idx in enumerate(faiss_top_k):
         idx = int(idx)
         if idx != -1:
-            rrf_scores[idx] = rrf_scores.get(idx, 0) + 1 / (rank + RRF_K)
+            rrf_scores[idx] = rrf_scores.get(idx, 0) + 1 / (rank + rrf_k)
+
+    if cat_weight:
+        cat_top_k = []
+        for idx in range(len(docs)):
+            cat_terms = set(_tokenize(docs[idx]["category"]))
+            matches = sum(1 for t in tokenized_query if t in cat_terms)
+            if matches > 0:
+                cat_top_k.append((idx, matches))
+        cat_top_k.sort(key=lambda x: x[1], reverse=True)
+        for rank, (idx, _) in enumerate(cat_top_k[:k]):
+            rrf_scores[int(idx)] = rrf_scores.get(int(idx), 0) + cat_weight / (rank + rrf_k)
 
     ranked = sorted(rrf_scores.items(), key=lambda x: x[1], reverse=True)
 
