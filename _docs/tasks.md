@@ -367,3 +367,35 @@ Add DuckDB-backed keyword search (SQL ILIKE) to the evaluation pipeline alongsid
 - Keyword search is DuckDB-only (no Postgres)
 - Sequential run assumed: sections 1–3 must have already loaded DuckDB in `.tmp/`
 - No new dependencies
+
+---
+
+## 17. Retrieval hyperparameter tuning
+
+### Goal
+
+Parameterise and sweep the three knobs that control retrieval quality — RRF K, k (top‑k cutoff), and BM25 (k1, b) — and report which settings maximise hit rate@k and MRR@k for hybrid search, and how sensitive each metric is to the chosen values.
+
+### Acceptance criteria
+
+- [ ] `RRF_K` made a parameter of `search()` (default `60`) instead of a module‑level constant
+- [ ] A notebook cell or script sweeps `RRF_K ∈ [10, 30, 60, 100]` and prints hit rate@k + MRR@k for each
+- [ ] A notebook cell or script sweeps `k ∈ [1, 3, 5, 10]` for hybrid and keyword search, printing a table of metric vs. k
+- [ ] A notebook cell or script sweeps BM25 `k1 ∈ [0.5, 1.0, 1.5, 2.0]` and `b ∈ [0.5, 0.75, 1.0]` and prints the best‑performing (k1, b) combination with its metrics
+- [ ] Rebuilds the BM25 index each time k1/b changes (or accepts the parameters at query time if the library supports it)
+- [ ] Uses `evaluate_retrieval(search_fn=…)` for all sweeps
+- [ ] All cells run top‑to‑bottom without errors
+
+### Out of scope
+
+- Changes to the `keyword_search()` function
+- Changes to the evaluation metric computation
+- GUI or interactive controls — plain printed tables
+- Persisting tuned defaults to config or environment
+
+### Constraints
+
+- Only `rank_bm25` BM25Okapi parameters — no forking or reimplementing BM25
+- Sweeps run inside the existing notebook (no separate script)
+- Sequential run assumed: sections 1–5 must have already built indexes and DuckDB in `.tmp/`
+- No new dependencies

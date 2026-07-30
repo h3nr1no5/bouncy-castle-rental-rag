@@ -30,18 +30,20 @@ def compute_mrr(results, relevant_ids, k=None):
     return 0.0
 
 
-def evaluate_retrieval(ground_truth=None, k=5, bm25_path=None, faiss_path=None, docs_path=None):
+def evaluate_retrieval(ground_truth=None, k=5, search_fn=None, **kwargs):
     if ground_truth is None:
         ground_truth = load_ground_truth()
 
-    from src.search import search
+    if search_fn is None:
+        from src.search import search
+        search_fn = search
 
     hit_rates = []
     mrrs = []
     details = []
 
     for item in ground_truth:
-        results = search(item["question"], k=k, bm25_path=bm25_path, faiss_path=faiss_path, docs_path=docs_path)
+        results = search_fn(item["question"], k=k, **kwargs)
         relevant_ids = [item["document_id"]]
         hr = compute_hit_rate(results, relevant_ids, k=k)
         m = compute_mrr(results, relevant_ids, k=k)
