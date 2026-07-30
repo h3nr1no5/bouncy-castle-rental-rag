@@ -10,6 +10,7 @@ dependencies = [
     "faiss-cpu>=1.10",
     "groq>=0.18",
     "openai>=1.68",
+    "psycopg2-binary>=2.9",
 ]
 
 [project.optional-dependencies]
