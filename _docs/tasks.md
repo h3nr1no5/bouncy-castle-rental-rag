@@ -208,6 +208,27 @@ The `exploration.ipynb` notebook demonstrates every closed task from 1–8; this
 
 ---
 
+## 8.2. Wire Postgres logging into the RAG pipeline
+
+### Goal
+
+Currently `log_interaction()` is only called with hardcoded demo data in the exploration notebook. This task wires it into `answer_question()` in `src/rag.py` so every real RAG interaction is logged to Postgres automatically.
+
+### Acceptance criteria
+
+- [ ] `answer_question()` in `src/rag.py` calls `log_interaction()` after every successful LLM call, passing the real question, answer, and metadata (provider, model, tokens, latency, cost)
+- [ ] Logging is graceful: if `DATABASE_URL` is not set or the connection fails, the function still returns the answer without crashing
+- [ ] `init_db()` is called on first use (lazily) to ensure the table exists
+- [ ] The notebook's section 8 demo still works unchanged
+- [ ] All existing tests (`uv run pytest`) still pass
+
+### Out of scope
+
+- Wiring `update_feedback()` into any API or UI — that remains a manual/library function
+- Connection pooling or async — a simple short-lived connection per call is fine
+
+---
+
 ## 9. Evaluation: retrieval metrics
 
 Goal: Compute hit rate and MRR against a small ground-truth question set.
