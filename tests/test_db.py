@@ -33,7 +33,7 @@ class TestLogInteraction:
         assert params[1] == "$100"
 
     def test_inserts_metadata_as_json(self, mock_conn):
-        metadata = {"model": "gpt-4", "tokens": 150}
+        metadata = {"model": "gpt-5.4-mini", "tokens": 150}
         log_interaction("test", "answer", metadata=metadata, conn=mock_conn)
         cursor = mock_conn.cursor.return_value.__enter__.return_value
         sql, params = cursor.execute.call_args[0]

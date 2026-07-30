@@ -1260,8 +1260,10 @@ dependencies = [
     { name = "groq" },
     { name = "openai" },
     { name = "psycopg2-binary" },
+    { name = "pydantic" },
     { name = "rank-bm25" },
     { name = "sentence-transformers" },
+    { name = "tqdm" },
 ]
 
 [package.optional-dependencies]
@@ -1284,9 +1286,11 @@ requires-dist = [
     { name = "groq", specifier = ">=0.18" },
     { name = "openai", specifier = ">=1.68" },
     { name = "psycopg2-binary", specifier = ">=2.9" },
+    { name = "pydantic", specifier = ">=2.11" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
     { name = "rank-bm25", specifier = ">=0.2.2" },
     { name = "sentence-transformers", specifier = ">=3.4" },
+    { name = "tqdm", specifier = ">=4.67" },
 ]
 provides-extras = ["dev"]
 

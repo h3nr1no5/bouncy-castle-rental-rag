@@ -6,7 +6,7 @@ from groq import Groq
 from openai import OpenAI as _OpenAI
 
 DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile"
-DEFAULT_OPENAI_MODEL = "gpt-4o-mini"
+DEFAULT_OPENAI_MODEL = "gpt-5.4-mini"
 
 GROQ_RPM_LIMIT = 25
 GROQ_RPD_LIMIT = 900

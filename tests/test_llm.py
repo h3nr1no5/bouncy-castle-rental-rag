@@ -114,7 +114,7 @@ class TestOpenaiFallback:
 
         assert result["response"] == "Hello from OpenAI"
         assert result["provider"] == "openai"
-        assert result["model"] == "gpt-4o-mini"
+        assert result["model"] == "gpt-5.4-mini"
 
     def test_falls_back_with_custom_openai_model(self):
         openai_fake = _make_mock_completion("custom fallback")
@@ -125,9 +125,9 @@ class TestOpenaiFallback:
         ):
             mock_groq_cls.return_value.chat.completions.create.side_effect = Exception("timeout")
             mock_openai_cls.return_value.chat.completions.create.return_value = openai_fake
-            result = ask_llm("sys", "msg", openai_model="gpt-4")
+            result = ask_llm("sys", "msg", openai_model="gpt-5.4-mini")
 
-        assert result["model"] == "gpt-4"
+        assert result["model"] == "gpt-5.4-mini"
         assert result["provider"] == "openai"
 
 

@@ -216,6 +216,45 @@ Description: Create an evaluation script that loads a hand-crafted set of test q
 
 ---
 
+## 9.1. Generate ground truth questions from FAQs
+
+### Goal
+
+Replace the manually written `data/ground_truth.json` with a script that uses an LLM to generate at least 5 natural-language query variants per FAQ entry using structured output, so evaluation has meaningful coverage (~210+ entries). Switch to CSV output (question, document_id) and use document IDs throughout the retrieval pipeline.
+
+### Acceptance criteria
+
+- [ ] `generate_ground_truth.py` exists at project root and is runnable via `uv run python generate_ground_truth.py`
+- [ ] It loads all 42 FAQs from `data/faq.csv` via `src.faqs.load_faqs()`
+- [ ] Uses OpenAI **structured output** (`client.responses.parse()` with Pydantic `Questions` model) — not `ask_llm()`
+- [ ] Model: `gpt-5.4-mini`, with pricing displayed after run ($0.75/M input, $4.50/M output)
+- [ ] Retry logic with exponential backoff on API errors
+- [ ] Processes FAQs in parallel using `ThreadPoolExecutor` + `tqdm` progress bar
+- [ ] Output is written to `data/ground_truth.csv` with columns `question,document_id` with ≥210 entries
+- [ ] All original 20 manual entries are replaced (files are overwritten entirely)
+- [ ] Re-running the script overwrites cleanly (no duplicates accumulate)
+- [ ] `src/ingest.py` adds a deterministic `id` field to each FAQ document in search index
+- [ ] `src/search.py` includes `id` in returned result dicts
+- [ ] `src/evaluate.py` refactored to match ground truth by `document_id` instead of question text
+- [ ] `pyproject.toml` has `tqdm` and `pydantic` added to dependencies
+- [ ] `uv run pytest` still passes (tests updated for ID-based matching)
+
+### Out of scope
+
+- Cross-mapping queries to multiple relevant documents (each maps to exactly one FAQ)
+- Any UI or CLI flags beyond the defaults — the script runs with zero arguments
+- Any changes to the LLM fallback logic in `src.llm`
+
+### Constraints
+
+- Uses `src.faqs.load_faqs()` for FAQ loading; LLM call is OpenAI SDK directly (not `ask_llm()`)
+- One LLM call per FAQ (not one giant call) — structured output returns a typed list of variants
+- Output format is CSV: `question,document_id` (not the old JSON schema)
+- Each FAQ must have a stable `id` derived from its index/position in the FAQ list
+- API errors are retried with exponential backoff; persistent failures produce a clear terminal message
+
+---
+
 ## 10. Evaluation: LLM-as-a-judge relevance scoring
 
 Goal: Score answer quality by asking an LLM to rate relevance.

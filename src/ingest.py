@@ -59,7 +59,7 @@ def build_indexes(faqs=None, bm25_path=None, faiss_path=None, docs_path=None, fo
     index.add(embeddings)
 
     docs_data = [
-        {"text": docs[i], "category": row["Category"], "question": row["Question"], "answer": row["Answer"]}
+        {"id": f"faq_{i}", "text": docs[i], "category": row["Category"], "question": row["Question"], "answer": row["Answer"]}
         for i, row in enumerate(faqs)
     ]
 

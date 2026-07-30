@@ -24,6 +24,7 @@ def test_search_returns_expected_keys(tmp_path):
     build_indexes(faqs=SAMPLE_FAQS, bm25_path=tmp_path / "bm25.pkl", faiss_path=tmp_path / "faiss.bin", docs_path=tmp_path / "docs.json")
     results = search("booking", k=2, bm25_path=tmp_path / "bm25.pkl", faiss_path=tmp_path / "faiss.bin", docs_path=tmp_path / "docs.json")
     for r in results:
+        assert "id" in r
         assert "category" in r
         assert "question" in r
         assert "answer" in r

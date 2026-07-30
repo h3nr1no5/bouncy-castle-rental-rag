@@ -11,6 +11,8 @@ dependencies = [
     "groq>=0.18",
     "openai>=1.68",
     "psycopg2-binary>=2.9",
+    "tqdm>=4.67",
+    "pydantic>=2.11",
 ]
 
 [project.optional-dependencies]

@@ -128,9 +128,9 @@ class TestAnswerQuestion:
             patch("src.rag.search", return_value=SAMPLE_CONTEXTS),
             patch("src.rag.ask_llm", return_value=LLM_RESULT) as mock_llm,
         ):
-            answer_question("cost", groq_model="mixtral-8x7b-32768", openai_model="gpt-4")
+            answer_question("cost", groq_model="mixtral-8x7b-32768", openai_model="gpt-5.4-mini")
 
         mock_llm.assert_called_once()
         _, kwargs = mock_llm.call_args
         assert kwargs["groq_model"] == "mixtral-8x7b-32768"
-        assert kwargs["openai_model"] == "gpt-4"
+        assert kwargs["openai_model"] == "gpt-5.4-mini"

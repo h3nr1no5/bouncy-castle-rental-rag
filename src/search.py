@@ -71,6 +71,7 @@ def search(query, k=5, bm25_path=None, faiss_path=None, docs_path=None):
     for idx, score in ranked[:k]:
         doc = docs[idx]
         results.append({
+            "id": doc["id"],
             "category": doc["category"],
             "question": doc["question"],
             "answer": doc["answer"],
