@@ -255,6 +255,39 @@ Replace the manually written `data/ground_truth.json` with a script that uses an
 
 ---
 
+## 9.2. Update exploration notebook with evaluation metrics
+
+### Goal
+
+The `exploration.ipynb` notebook demonstrates every closed task from 1–9; this task adds a section for Tasks 9–9.1's evaluation module (`src.evaluate`) so the notebook covers the full retrieval evaluation pipeline.
+
+### Acceptance criteria
+
+- [ ] A new top-level markdown heading "9. Evaluation" exists between "8. Postgres Logging Layer" and the existing "10. Cleanup" sections
+- [ ] The former "9. Cleanup" section is renumbered to "10. Cleanup"
+- [ ] `load_ground_truth`, `compute_hit_rate`, `compute_mrr`, and `evaluate_retrieval` are imported from `src.evaluate`
+- [ ] A code cell loads the ground truth CSV and prints the entry count and a few sample rows
+- [ ] A code cell demonstrates `compute_hit_rate()` and `compute_mrr()` on a small set of known results
+- [ ] A code cell calls `evaluate_retrieval()` with the `.tmp/` indexes and displays hit rate@k and MRR@k with per-query details
+- [ ] A markdown cell notes that ground truth can be regenerated via `uv run python generate_ground_truth.py`
+- [ ] All cells run top-to-bottom without errors
+- [ ] No duplicated logic — everything comes from `src.*` imports
+
+### Out of scope
+
+- Running LLM-as-a-judge evaluation (Task 10)
+- Re-generating ground truth within the notebook (handled by `generate_ground_truth.py` standalone)
+- Any changes to the evaluation logic itself
+
+### Constraints
+
+- Notebook must import from `src.*` modules — no inlined logic
+- Sequential run assumed: sections 1–5 must have already built the indexes in `.tmp/`
+- API-key-dependent cells must use `os.environ.get(...)` and fail gracefully
+- Follow the same coding conventions as the rest of the project (no pandas)
+
+---
+
 ## 10. Evaluation: LLM-as-a-judge relevance scoring
 
 Goal: Score answer quality by asking an LLM to rate relevance.
