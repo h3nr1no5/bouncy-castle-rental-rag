@@ -73,12 +73,12 @@ An `exploration.ipynb` notebook at the project root that demonstrates every func
 
 - [ ] `exploration.ipynb` exists at the project root
 - [ ] Notebook cells are preceded by markdown explaining what each cell does and why
-- [ ] Section 1 — Setup: imports from `src.faqs`, `src.pipeline`, `src.ingest`, `src.search`; create a `.tmp/` working directory
+- [ ] Section 1 — Setup: imports from `src.faqs`, `src.pipeline`, `src.ingest`, `src.search`; create a `db/` working directory
 - [ ] Section 2 — Load FAQ Data: calls `load_faqs()`, prints row count (42), displays 3 sample rows, shows column-level missing-value stats
-- [ ] Section 3 — dlt Pipeline: runs `run_pipeline()` into `.tmp/test_faq.duckdb`, queries the loaded table with `duckdb`, re-runs the pipeline and confirms the row count stays the same (idempotency)
-- [ ] Section 4 — Build Indexes: calls `build_indexes(force=True)` with all paths under `.tmp/`, inspects the BM25 pickle count, FAISS index dimensions (ntotal, d), and docs JSON structure
+- [ ] Section 3 — dlt Pipeline: runs `run_pipeline()` into `db/test_faq.duckdb`, queries the loaded table with `duckdb`, re-runs the pipeline and confirms the row count stays the same (idempotency)
+- [ ] Section 4 — Build Indexes: calls `build_indexes(force=True)` with all paths under `db/`, inspects the BM25 pickle count, FAISS index dimensions (ntotal, d), and docs JSON structure
 - [ ] Section 5 — Hybrid Search: calls `search()` with at least three different queries (e.g. "booking", "cost", "safety"), prints ranked results with RRF scores, demonstrates `k=1` vs `k=5` and an empty-query edge case
-- [ ] Section 6 — Cleanup (optional): removes the `.tmp/` directory when the last cell runs
+- [ ] Section 6 — Cleanup (optional): skipped — `db/` is persistent; remove manually if desired
 - [ ] `pyproject.toml` has `ipykernel` and `notebook` in dev dependencies
 - [ ] Running all cells top-to-bottom produces no errors
 
@@ -91,7 +91,7 @@ An `exploration.ipynb` notebook at the project root that demonstrates every func
 ### Constraints
 
 - Notebook must import from `src.*` modules — no duplicated logic
-- Temp files (indexes, DuckDB) go in `.tmp/` (gitignored)
+- Artifacts (indexes, DuckDB) live in `db/` (gitignored)
 - Follow the same coding conventions as the rest of the project (no pandas, minimal new deps)
 
 ---
@@ -154,7 +154,7 @@ The `exploration.ipynb` notebook demonstrates every closed task from 1–6; this
 - [ ] A new top-level markdown heading "7. RAG Pipeline" exists between "6. LLM Client" and the existing "8. Cleanup" sections
 - [ ] The former "7. Cleanup" section is renumbered to "8. Cleanup"
 - [ ] `answer_question` is imported from `src.rag`
-- [ ] A code cell calls `answer_question()` with a sample question (e.g. "What's your cancellation policy?") using the same `.tmp/` indexes built in section 4; if API keys are missing it prints a graceful message instead of crashing
+- [ ] A code cell calls `answer_question()` with a sample question (e.g. "What's your cancellation policy?") using the same `db/` indexes built in section 4; if API keys are missing it prints a graceful message instead of crashing
 - [ ] Returned metadata (answer, contexts, model, provider, latency, tokens) is displayed
 - [ ] A code cell demonstrates the empty-context edge case (search returns no results)
 - [ ] All cells run top-to-bottom without errors
@@ -170,7 +170,7 @@ The `exploration.ipynb` notebook demonstrates every closed task from 1–6; this
 - Notebook must import from `src.*` modules — no inlined logic
 - API-key‑dependent cells must use `os.environ.get(...)` and fail gracefully
 - Follow the same coding conventions as the rest of the project (no pandas)
-- Sequential run assumed: sections 1–5 must have already built the indexes in `.tmp/`
+- Sequential run assumed: sections 1–5 must have already built the indexes in `db/`
 
 ## 8. Postgres logging layer
 
@@ -204,7 +204,7 @@ The `exploration.ipynb` notebook demonstrates every closed task from 1–8; this
 - Notebook must import from `src.*` modules — no inlined logic
 - Database-dependent cells must use `os.environ.get("DATABASE_URL")` and fail gracefully
 - Follow the same coding conventions as the rest of the project (no pandas)
-- Sequential run assumed: sections 1–7 must have already built the indexes in `.tmp/`
+- Sequential run assumed: sections 1–7 must have already built the indexes in `db/`
 
 ---
 
@@ -268,7 +268,7 @@ The `exploration.ipynb` notebook demonstrates every closed task from 1–9; this
 - [ ] `load_ground_truth`, `compute_hit_rate`, `compute_mrr`, and `evaluate_retrieval` are imported from `src.evaluate`
 - [ ] A code cell loads the ground truth CSV and prints the entry count and a few sample rows
 - [ ] A code cell demonstrates `compute_hit_rate()` and `compute_mrr()` on a small set of known results
-- [ ] A code cell calls `evaluate_retrieval()` with the `.tmp/` indexes and displays hit rate@k and MRR@k with per-query details
+- [ ] A code cell calls `evaluate_retrieval()` with the `db/` indexes and displays hit rate@k and MRR@k with per-query details
 - [ ] A markdown cell notes that ground truth can be regenerated via `uv run python generate_ground_truth.py`
 - [ ] All cells run top-to-bottom without errors
 - [ ] No duplicated logic — everything comes from `src.*` imports
@@ -282,7 +282,7 @@ The `exploration.ipynb` notebook demonstrates every closed task from 1–9; this
 ### Constraints
 
 - Notebook must import from `src.*` modules — no inlined logic
-- Sequential run assumed: sections 1–5 must have already built the indexes in `.tmp/`
+- Sequential run assumed: sections 1–5 must have already built the indexes in `db/`
 - API-key-dependent cells must use `os.environ.get(...)` and fail gracefully
 - Follow the same coding conventions as the rest of the project (no pandas)
 
@@ -365,7 +365,7 @@ Add DuckDB-backed keyword search (SQL ILIKE) to the evaluation pipeline alongsid
 ### Constraints
 
 - Keyword search is DuckDB-only (no Postgres)
-- Sequential run assumed: sections 1–3 must have already loaded DuckDB in `.tmp/`
+- Sequential run assumed: sections 1–3 must have already loaded DuckDB in `db/`
 - No new dependencies
 
 ---
@@ -397,7 +397,7 @@ Parameterise and sweep the three knobs that control retrieval quality — RRF K,
 
 - Only `rank_bm25` BM25Okapi parameters — no forking or reimplementing BM25
 - Sweeps run inside the existing notebook (no separate script)
-- Sequential run assumed: sections 1–5 must have already built indexes and DuckDB in `.tmp/`
+- Sequential run assumed: sections 1–5 must have already built indexes and DuckDB in `db/`
 - No new dependencies
 
 ---
@@ -429,5 +429,5 @@ Add a `cat_weight` parameter to hybrid search and sweep category field weight fo
 
 - Category overlap is computed as a simple ratio: matching terms / total distinct query terms
 - Default `cat_weight=0` must not change existing hybrid search behaviour
-- Sequential run assumed: sections 1–5 must have already built indexes and DuckDB in `.tmp/`
+- Sequential run assumed: sections 1–5 must have already built indexes and DuckDB in `db/`
 - No new dependencies

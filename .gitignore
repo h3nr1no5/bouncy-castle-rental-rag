@@ -9,4 +9,4 @@ faq_ingestion.duckdb
 .env
 .envrc
 
-.tmp/
+db/
