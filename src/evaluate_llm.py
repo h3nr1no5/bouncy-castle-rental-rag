@@ -77,6 +77,10 @@ def evaluate_relevance(
                 "relevance": None,
                 "faithfulness": None,
                 "explanation": "RAG pipeline failed",
+                "rag_cost": None,
+                "judge_cost": None,
+                "judge_latency": None,
+                "judge_tokens": None,
                 "error": True,
             })
             continue
@@ -114,6 +118,10 @@ def evaluate_relevance(
                 "rag_model": rag_result["model"],
                 "rag_latency": rag_result["latency"],
                 "rag_tokens": rag_result["tokens"],
+                "rag_cost": rag_result["cost"],
+                "judge_cost": judge_result["cost"],
+                "judge_latency": judge_result["latency"],
+                "judge_tokens": judge_result["tokens"],
                 "error": False,
             })
         except Exception:
@@ -125,6 +133,10 @@ def evaluate_relevance(
                 "relevance": None,
                 "faithfulness": None,
                 "explanation": "Judge LLM call failed",
+                "rag_cost": rag_result["cost"],
+                "judge_cost": None,
+                "judge_latency": None,
+                "judge_tokens": None,
                 "error": True,
             })
 
@@ -139,14 +151,24 @@ def evaluate_relevance(
             "n": n,
             "n_valid": 0,
             "distribution": {},
+            "total_rag_cost": 0.0,
+            "total_judge_cost": 0.0,
+            "total_cost": 0.0,
+            "mean_rag_cost": None,
+            "mean_judge_cost": None,
             "details": scores,
         }
 
     rel_scores = [s["relevance"] for s in valid]
     faith_scores = [s["faithfulness"] for s in valid]
+    rag_costs = [s["rag_cost"] for s in valid]
+    judge_costs = [s["judge_cost"] for s in valid]
 
     dist_rel = {i: rel_scores.count(i) for i in range(1, 6)}
     dist_faith = {i: faith_scores.count(i) for i in range(1, 6)}
+
+    total_rag_cost = sum(rag_costs)
+    total_judge_cost = sum(judge_costs)
 
     return {
         "mean_relevance": round(sum(rel_scores) / n_valid, 2),
@@ -157,6 +179,11 @@ def evaluate_relevance(
             "relevance": dist_rel,
             "faithfulness": dist_faith,
         },
+        "total_rag_cost": round(total_rag_cost, 6),
+        "total_judge_cost": round(total_judge_cost, 6),
+        "total_cost": round(total_rag_cost + total_judge_cost, 6),
+        "mean_rag_cost": round(total_rag_cost / n_valid, 6) if n_valid else None,
+        "mean_judge_cost": round(total_judge_cost / n_valid, 6) if n_valid else None,
         "details": scores,
     }
 

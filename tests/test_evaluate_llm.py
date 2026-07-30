@@ -42,6 +42,11 @@ def test_evaluate_relevance_report_structure(tmp_path):
     assert "n_valid" in report
     assert "distribution" in report
     assert "details" in report
+    assert "total_cost" in report
+    assert "total_rag_cost" in report
+    assert "total_judge_cost" in report
+    assert "mean_rag_cost" in report
+    assert "mean_judge_cost" in report
 
     if has_keys and report["n_valid"] > 0:
         assert report["mean_relevance"] is not None
@@ -61,3 +66,10 @@ def test_evaluate_relevance_report_structure(tmp_path):
         assert "judge_model" in detail
         assert "rag_provider" in detail
         assert "rag_model" in detail
+        assert "rag_cost" in detail
+        assert "judge_cost" in detail
+        assert "judge_latency" in detail
+        assert "judge_tokens" in detail
+        assert report["total_cost"] >= 0
+        assert report["total_rag_cost"] >= 0
+        assert report["total_judge_cost"] >= 0

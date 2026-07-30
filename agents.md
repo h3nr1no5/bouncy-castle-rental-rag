@@ -16,5 +16,9 @@ Documents
 - For anything touching the UI, read `_docs/design-system.md`
 
 
-Mandatory
+Mandatory:
+language:
 - Always respond in English. 
+
+Tests:
+- Only run tests if source code changed not other irrelevant files.
