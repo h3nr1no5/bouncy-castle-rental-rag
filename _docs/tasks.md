@@ -104,6 +104,37 @@ Description: Write `src/llm.py` that wraps the `groq` and `openai` Python SDKs. 
 
 ---
 
+## 6.1. Update exploration notebook with LLM client
+
+### Goal
+
+The `exploration.ipynb` notebook demonstrates every closed task from 1–5; this task adds a section for the Task 6 LLM client (`src/llm.py`) so the notebook covers all completed work.
+
+### Acceptance criteria
+
+- [ ] A new top-level markdown heading "6. LLM Client" exists between "5. Hybrid Search" and the existing "6. Cleanup" sections
+- [ ] The former "6. Cleanup" section is renumbered to "7. Cleanup"
+- [ ] `ask_llm` is imported from `src.llm`
+- [ ] A code cell attempts a real `ask_llm()` call with a FAQ-related system prompt and question; if API keys are missing it prints a graceful message instead of crashing
+- [ ] Returned metadata (provider, model, latency, token counts) is displayed
+- [ ] Rate-limit constants (`GROQ_RPM_LIMIT`, `GROQ_RPD_LIMIT`) are shown and the `_enforce_groq_rate_limits()` mechanism is explained in markdown
+- [ ] All cells run top-to-bottom without errors
+- [ ] No duplicated logic — everything comes from `src.*` imports
+- [ ] Only `src/` and standard-library/test dependencies are used; no new dependencies added
+
+### Out of scope
+
+- Implementing `src/rag.py` (Task 7) — the notebook only covers closed tasks
+- Mock-based demonstrations — real API calls with graceful key-gated fallback
+
+### Constraints
+
+- Notebook must import from `src.*` modules — no inlined logic
+- API-key‑dependent cells must use `os.environ.get(...)` and fail gracefully
+- Follow the same coding conventions as the rest of the project (no pandas)
+
+---
+
 ## 7. RAG orchestration pipeline
 
 Goal: Wire retrieval + LLM call into a single `answer_question()` function.
