@@ -399,3 +399,35 @@ Parameterise and sweep the three knobs that control retrieval quality — RRF K,
 - Sweeps run inside the existing notebook (no separate script)
 - Sequential run assumed: sections 1–5 must have already built indexes and DuckDB in `.tmp/`
 - No new dependencies
+
+---
+
+## 9.3. Category weight tuning for retrieval
+
+### Goal
+
+Add a `cat_weight` parameter to hybrid search and sweep category field weight for keyword search, so retrieval can be tuned to prefer or deprioritise category‑term overlap independent of the main BM25+FAISS signal.
+
+### Acceptance criteria
+
+- [ ] `search()` in `src/search.py` accepts `cat_weight=0` parameter
+  - Tokenizes the query and compares term overlap with each document's `category` field
+  - Adds the category‑match score as a third entry point in the RRF fusion (alongside BM25 and FAISS ranks)
+  - Default `0` means no category boost (backward compatible)
+- [ ] A notebook cell sweeps `cat_weight ∈ [0, 0.5, 1, 2, 3]` for hybrid search and prints hit rate@k + MRR@k for each
+- [ ] A notebook cell sweeps keyword-search Category field weight `∈ [0, 0.5, 1, 2, 3]` with `Question=1, Answer=1` fixed and prints metrics
+- [ ] Both sweeps use `evaluate_retrieval(search_fn=…)`
+- [ ] All cells run top‑to‑bottom without errors
+
+### Out of scope
+
+- Changes to the index‑building process (category is extracted at query time from the stored docs metadata)
+- Changes to the evaluation metric computation
+- GUI or interactive controls
+
+### Constraints
+
+- Category overlap is computed as a simple ratio: matching terms / total distinct query terms
+- Default `cat_weight=0` must not change existing hybrid search behaviour
+- Sequential run assumed: sections 1–5 must have already built indexes and DuckDB in `.tmp/`
+- No new dependencies
