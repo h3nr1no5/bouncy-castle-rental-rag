@@ -26,6 +26,7 @@ LLM_RESULT = {
     "model": "llama-3.3-70b-versatile",
     "provider": "groq",
     "latency": 0.5,
+    "cost": 0.000076,
     "tokens": {"prompt": 100, "completion": 20, "total": 120},
 }
 

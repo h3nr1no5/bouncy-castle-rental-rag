@@ -36,3 +36,15 @@ uv run jupyter notebook exploration.ipynb
 ```
 
 > The notebook demonstrates all completed tasks (1–8). Sections 6–7 need API keys for LLM calls. Section 8 needs Postgres running (via Docker Desktop).
+
+### Ground truth data (optional)
+
+A pre-generated ground truth dataset is available at `data/ground_truth.csv` (205 query–document pairs generated from the 41 FAQs).
+
+To regenerate it yourself:
+
+```bash
+uv run python generate_ground_truth.py
+```
+
+Requires `OPENAI_API_KEY` in `.env`. Optional — the RAG pipeline works without it.

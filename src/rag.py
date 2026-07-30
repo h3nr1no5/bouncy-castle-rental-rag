@@ -50,6 +50,7 @@ def answer_question(
         "model": result["model"],
         "provider": result["provider"],
         "latency": result["latency"],
+        "cost": result["cost"],
         "tokens": result["tokens"],
     }
 

@@ -2,6 +2,7 @@ import csv
 import os
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from dotenv import load_dotenv
 from openai import OpenAI
 from pydantic import BaseModel
 from tqdm import tqdm
@@ -40,16 +41,22 @@ def _generate_variants(client, faq, index):
                 text_format=Questions,
             )
             questions = response.output[0].content[0].parsed.questions
-            return [(q, doc_id) for q in questions]
+            usage = response.usage
+            return {
+                "rows": [(q, doc_id) for q in questions],
+                "input_tokens": usage.input_tokens,
+                "output_tokens": usage.output_tokens,
+            }
         except Exception as e:
             if attempt < 3:
                 time.sleep(2 ** attempt)
             else:
                 print(f"Failed for FAQ {index} ({faq['Question']}): {e}")
-    return []
+    return {"rows": [], "input_tokens": 0, "output_tokens": 0}
 
 
 def main():
+    load_dotenv()
     faqs = load_faqs()
     client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
     if not client.api_key:
@@ -65,10 +72,16 @@ def main():
 
         for future in tqdm(as_completed(futures), total=len(futures), desc="Generating queries"):
             result = future.result()
-            all_rows.extend(result)
+            all_rows.extend(result["rows"])
+            total_input_tokens += result["input_tokens"]
+            total_output_tokens += result["output_tokens"]
 
-    rows_needed = len(faqs) * 5
+    input_cost = total_input_tokens * INPUT_PRICE
+    output_cost = total_output_tokens * OUTPUT_PRICE
+
     print(f"Generated {len(all_rows)} queries from {len(faqs)} FAQs")
+    print(f"Input tokens: {total_input_tokens}, Output tokens: {total_output_tokens}")
+    print(f"Estimated cost: ${input_cost + output_cost:.4f} (${input_cost:.4f} input + ${output_cost:.4f} output)")
 
     output_path = os.path.join(os.path.dirname(__file__), "data", "ground_truth.csv")
     with open(output_path, "w", newline="", encoding="utf-8") as f:
@@ -78,7 +91,6 @@ def main():
             writer.writerow([question, doc_id])
 
     print(f"Written to {output_path}")
-    print(f"Pricing: ${len(all_rows) * INPUT_PRICE:.4f} input, ${len(all_rows) * OUTPUT_PRICE:.4f} output")
 
 
 if __name__ == "__main__":

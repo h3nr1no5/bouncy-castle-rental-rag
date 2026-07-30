@@ -11,6 +11,12 @@ DEFAULT_OPENAI_MODEL = "gpt-5.4-mini"
 GROQ_RPM_LIMIT = 25
 GROQ_RPD_LIMIT = 900
 
+MODEL_PRICING = {
+    "llama-3.3-70b-versatile": {"input": 0.59 / 1_000_000, "output": 0.79 / 1_000_000},
+    "gpt-5.4-mini": {"input": 0.75 / 1_000_000, "output": 4.50 / 1_000_000},
+}
+DEFAULT_PRICE = {"input": 0.50 / 1_000_000, "output": 1.00 / 1_000_000}
+
 _groq_timestamps_minute = deque()
 _groq_timestamps_day = deque()
 
@@ -97,14 +103,19 @@ def ask_llm(
 
 def _build_result(response, provider, model, start):
     latency = time.time() - start
+    prompt_tokens = response.usage.prompt_tokens
+    completion_tokens = response.usage.completion_tokens
+    price = MODEL_PRICING.get(model, DEFAULT_PRICE)
+    cost = prompt_tokens * price["input"] + completion_tokens * price["output"]
     return {
         "response": response.choices[0].message.content,
         "model": model,
         "provider": provider,
         "latency": round(latency, 3),
+        "cost": round(cost, 6),
         "tokens": {
-            "prompt": response.usage.prompt_tokens,
-            "completion": response.usage.completion_tokens,
+            "prompt": prompt_tokens,
+            "completion": completion_tokens,
             "total": response.usage.total_tokens,
         },
     }
