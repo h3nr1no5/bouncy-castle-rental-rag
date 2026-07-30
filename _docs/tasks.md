@@ -178,6 +178,34 @@ Goal: Log every RAG interaction to a Postgres database.
 
 Description: Write `src/db.py` that manages a Postgres connection (via `asyncpg` or `psycopg2`), creates a table for logs (question, answer, feedback, metadata, timestamp), and exposes `log_interaction()` and `update_feedback()` functions.
 
+## 8.1. Update exploration notebook with Postgres logging layer
+
+### Goal
+
+The `exploration.ipynb` notebook demonstrates every closed task from 1–8; this task adds a section for Task 8's Postgres logging layer (`src/db.py`) so the notebook covers all completed work.
+
+### Acceptance criteria
+
+- [ ] A new top-level markdown heading "8. Postgres Logging Layer" exists between "7. RAG Pipeline" and the existing "9. Cleanup" sections
+- [ ] The former "9. Cleanup" section is renumbered to "10. Cleanup"
+- [ ] `init_db`, `log_interaction`, `update_feedback`, `get_connection`, and `CREATE_TABLE_SQL` are imported from `src.db`
+- [ ] The `rag_logs` table schema (DDL) is printed for inspection
+- [ ] A code cell attempts a real Postgres connection: calls `init_db()` to create the table, `log_interaction()` to log a sample RAG interaction, and `update_feedback()` to set feedback; if `DATABASE_URL` is missing or the connection fails, a graceful message is printed instead of crashing
+- [ ] All cells run top-to-bottom without errors
+- [ ] No duplicated logic — everything comes from `src.*` imports
+
+### Out of scope
+
+- Any open tasks beyond 8 (9–15) — the notebook only covers completed work
+- Mock-based demonstrations — real Postgres connection with graceful key-gated fallback
+
+### Constraints
+
+- Notebook must import from `src.*` modules — no inlined logic
+- Database-dependent cells must use `os.environ.get("DATABASE_URL")` and fail gracefully
+- Follow the same coding conventions as the rest of the project (no pandas)
+- Sequential run assumed: sections 1–7 must have already built the indexes in `.tmp/`
+
 ---
 
 ## 9. Evaluation: retrieval metrics
