@@ -309,6 +309,43 @@ The `exploration.ipynb` notebook demonstrates every closed task from 1–9; this
 
 ---
 
+## 10.1. Update exploration notebook with LLM-as-a-judge
+
+### Goal
+
+The `exploration.ipynb` notebook demonstrates every closed task from 1–10; this task adds a section for Task 10's LLM-as-a-judge relevance scoring (`src/evaluate_llm.py`) and renumbers the existing keyword search section so the notebook reflects the correct task numbering.
+
+### Acceptance criteria
+
+- [ ] `src/evaluate_llm.py` exists with `evaluate_relevance()` that:
+  - Loads ground truth questions from `data/ground_truth.csv`
+  - Runs each through `answer_question()` for real RAG answers
+  - Sends each (question, answer, context) to an LLM judge via `ask_llm()` for composite scoring (relevance 1-5, faithfulness 1-5)
+  - Default judge model: `gpt-5.4-mini` (OpenAI), falls back to Groq
+  - Accepts `sample=` for limiting queries; graceful skip when no API key set
+  - Returns aggregate report with mean scores, distribution, per-query details
+- [ ] A new `## 10. LLM-as-a-judge Relevance Scoring` section exists in the notebook between sections 9 and 11
+- [ ] Section 10 demonstrates `evaluate_relevance()` and compares relevance/faithfulness scores with retrieval metrics (hit rate/MRR) from section 9
+- [ ] `## 10. Keyword Search Evaluation` is renumbered to `## 11. Keyword Search Evaluation`
+- [ ] All cells run top-to-bottom without errors
+- [ ] No duplicated logic — everything comes from `src.*` imports
+- [ ] API-key-dependent cells use `os.environ.get(...)` and fail gracefully
+- [ ] `tests/test_evaluate_llm.py` exists with tests for report structure (no mocking, graceful skip when no key)
+
+### Out of scope
+
+- Changes to the retrieval evaluation logic or ground truth data
+- Any UI, dashboard, or visualisation beyond printed tables
+
+### Constraints
+
+- Notebook must import from `src.*` modules — no inlined logic
+- Judge calls use `ask_llm()` (respects Groq rate limits, fallback chain)
+- Sequential run assumed: sections 1–5 must have already built indexes in `db/`
+- No new dependencies
+
+---
+
 ## 10. Evaluation: LLM-as-a-judge relevance scoring
 
 Goal: Score answer quality by asking an LLM to rate relevance.
