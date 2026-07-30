@@ -16,14 +16,14 @@ Provide a `load_faqs()` function in `src/faqs.py` that reads `data/faq.csv`, str
 
 ### Acceptance criteria
 
-- [ ] `src/faqs.py` exports `load_faqs()` returning `list[dict[str, str]]` with keys `Category`, `Question`, `Answer`
-- [ ] CSV cell values have leading/trailing whitespace stripped
-- [ ] A `python -m src.faqs` entry point prints `Rows: 42` and the column names
-- [ ] `tests/test_faqs.py` verifies:
+- [x] `src/faqs.py` exports `load_faqs()` returning `list[dict[str, str]]` with keys `Category`, `Question`, `Answer`
+- [x] CSV cell values have leading/trailing whitespace stripped
+- [x] A `python -m src.faqs` entry point prints `Rows: 42` and the column names
+- [x] `tests/test_faqs.py` verifies:
   - the CSV is non-empty (42 rows)
   - every row has all three non-empty string keys
   - `load_faqs()` raises `FileNotFoundError` with a clear message when the CSV is missing
-- [ ] The CSV path defaults to `<project_root>/data/faq.csv` and is overridable via an optional `path` argument
+- [x] The CSV path defaults to `<project_root>/data/faq.csv` and is overridable via an optional `path` argument
 
 ### Out of scope
 
@@ -71,16 +71,16 @@ An `exploration.ipynb` notebook at the project root that demonstrates every func
 
 ### Acceptance criteria
 
-- [ ] `exploration.ipynb` exists at the project root
-- [ ] Notebook cells are preceded by markdown explaining what each cell does and why
-- [ ] Section 1 — Setup: imports from `src.faqs`, `src.pipeline`, `src.ingest`, `src.search`; create a `db/` working directory
-- [ ] Section 2 — Load FAQ Data: calls `load_faqs()`, prints row count (42), displays 3 sample rows, shows column-level missing-value stats
-- [ ] Section 3 — dlt Pipeline: runs `run_pipeline()` into `db/test_faq.duckdb`, queries the loaded table with `duckdb`, re-runs the pipeline and confirms the row count stays the same (idempotency)
-- [ ] Section 4 — Build Indexes: calls `build_indexes(force=True)` with all paths under `db/`, inspects the BM25 pickle count, FAISS index dimensions (ntotal, d), and docs JSON structure
-- [ ] Section 5 — Hybrid Search: calls `search()` with at least three different queries (e.g. "booking", "cost", "safety"), prints ranked results with RRF scores, demonstrates `k=1` vs `k=5` and an empty-query edge case
-- [ ] Section 6 — Cleanup (optional): skipped — `db/` is persistent; remove manually if desired
-- [ ] `pyproject.toml` has `ipykernel` and `notebook` in dev dependencies
-- [ ] Running all cells top-to-bottom produces no errors
+- [x] `exploration.ipynb` exists at the project root
+- [x] Notebook cells are preceded by markdown explaining what each cell does and why
+- [x] Section 1 — Setup: imports from `src.faqs`, `src.pipeline`, `src.ingest`, `src.search`; create a `db/` working directory
+- [x] Section 2 — Load FAQ Data: calls `load_faqs()`, prints row count (42), displays 3 sample rows, shows column-level missing-value stats
+- [x] Section 3 — dlt Pipeline: runs `run_pipeline()` into `db/test_faq.duckdb`, queries the loaded table with `duckdb`, re-runs the pipeline and confirms the row count stays the same (idempotency)
+- [x] Section 4 — Build Indexes: calls `build_indexes(force=True)` with all paths under `db/`, inspects the BM25 pickle count, FAISS index dimensions (ntotal, d), and docs JSON structure
+- [x] Section 5 — Hybrid Search: calls `search()` with at least three different queries (e.g. "booking", "cost", "safety"), prints ranked results with RRF scores, demonstrates `k=1` vs `k=5` and an empty-query edge case
+- [x] Section 6 — Cleanup (optional): skipped — `db/` is persistent; remove manually if desired
+- [x] `pyproject.toml` has `ipykernel` and `notebook` in dev dependencies
+- [x] Running all cells top-to-bottom produces no errors
 
 ### Out of scope
 
@@ -112,15 +112,15 @@ The `exploration.ipynb` notebook demonstrates every closed task from 1–5; this
 
 ### Acceptance criteria
 
-- [ ] A new top-level markdown heading "6. LLM Client" exists between "5. Hybrid Search" and the existing "6. Cleanup" sections
-- [ ] The former "6. Cleanup" section is renumbered to "7. Cleanup"
-- [ ] `ask_llm` is imported from `src.llm`
-- [ ] A code cell attempts a real `ask_llm()` call with a FAQ-related system prompt and question; if API keys are missing it prints a graceful message instead of crashing
-- [ ] Returned metadata (provider, model, latency, token counts) is displayed
-- [ ] Rate-limit constants (`GROQ_RPM_LIMIT`, `GROQ_RPD_LIMIT`) are shown and the `_enforce_groq_rate_limits()` mechanism is explained in markdown
-- [ ] All cells run top-to-bottom without errors
-- [ ] No duplicated logic — everything comes from `src.*` imports
-- [ ] Only `src/` and standard-library/test dependencies are used; no new dependencies added
+- [x] A new top-level markdown heading "6. LLM Client" exists between "5. Hybrid Search" and the existing "6. Cleanup" sections
+- [x] The former "6. Cleanup" section is renumbered to "7. Cleanup"
+- [x] `ask_llm` is imported from `src.llm`
+- [x] A code cell attempts a real `ask_llm()` call with a FAQ-related system prompt and question; if API keys are missing it prints a graceful message instead of crashing
+- [x] Returned metadata (provider, model, latency, token counts) is displayed
+- [x] Rate-limit constants (`GROQ_RPM_LIMIT`, `GROQ_RPD_LIMIT`) are shown and the `_enforce_groq_rate_limits()` mechanism is explained in markdown
+- [x] All cells run top-to-bottom without errors
+- [x] No duplicated logic — everything comes from `src.*` imports
+- [x] Only `src/` and standard-library/test dependencies are used; no new dependencies added
 
 ### Out of scope
 
@@ -151,14 +151,14 @@ The `exploration.ipynb` notebook demonstrates every closed task from 1–6; this
 
 ### Acceptance criteria
 
-- [ ] A new top-level markdown heading "7. RAG Pipeline" exists between "6. LLM Client" and the existing "8. Cleanup" sections
-- [ ] The former "7. Cleanup" section is renumbered to "8. Cleanup"
-- [ ] `answer_question` is imported from `src.rag`
-- [ ] A code cell calls `answer_question()` with a sample question (e.g. "What's your cancellation policy?") using the same `db/` indexes built in section 4; if API keys are missing it prints a graceful message instead of crashing
-- [ ] Returned metadata (answer, contexts, model, provider, latency, tokens) is displayed
-- [ ] A code cell demonstrates the empty-context edge case (search returns no results)
-- [ ] All cells run top-to-bottom without errors
-- [ ] No duplicated logic — everything comes from `src.*` imports
+- [x] A new top-level markdown heading "7. RAG Pipeline" exists between "6. LLM Client" and the existing "8. Cleanup" sections
+- [x] The former "7. Cleanup" section is renumbered to "8. Cleanup"
+- [x] `answer_question` is imported from `src.rag`
+- [x] A code cell calls `answer_question()` with a sample question (e.g. "What's your cancellation policy?") using the same `db/` indexes built in section 4; if API keys are missing it prints a graceful message instead of crashing
+- [x] Returned metadata (answer, contexts, model, provider, latency, tokens) is displayed
+- [x] A code cell demonstrates the empty-context edge case (search returns no results)
+- [x] All cells run top-to-bottom without errors
+- [x] No duplicated logic — everything comes from `src.*` imports
 
 ### Out of scope
 
@@ -186,13 +186,13 @@ The `exploration.ipynb` notebook demonstrates every closed task from 1–8; this
 
 ### Acceptance criteria
 
-- [ ] A new top-level markdown heading "8. Postgres Logging Layer" exists between "7. RAG Pipeline" and the existing "9. Cleanup" sections
-- [ ] The former "9. Cleanup" section is renumbered to "10. Cleanup"
-- [ ] `init_db`, `log_interaction`, `update_feedback`, `get_connection`, and `CREATE_TABLE_SQL` are imported from `src.db`
-- [ ] The `rag_logs` table schema (DDL) is printed for inspection
-- [ ] A code cell attempts a real Postgres connection: calls `init_db()` to create the table, `log_interaction()` to log a sample RAG interaction, and `update_feedback()` to set feedback; if `DATABASE_URL` is missing or the connection fails, a graceful message is printed instead of crashing
-- [ ] All cells run top-to-bottom without errors
-- [ ] No duplicated logic — everything comes from `src.*` imports
+- [x] A new top-level markdown heading "8. Postgres Logging Layer" exists between "7. RAG Pipeline" and the existing "9. Cleanup" sections
+- [x] The former "9. Cleanup" section is renumbered to "10. Cleanup"
+- [x] `init_db`, `log_interaction`, `update_feedback`, `get_connection`, and `CREATE_TABLE_SQL` are imported from `src.db`
+- [x] The `rag_logs` table schema (DDL) is printed for inspection
+- [x] A code cell attempts a real Postgres connection: calls `init_db()` to create the table, `log_interaction()` to log a sample RAG interaction, and `update_feedback()` to set feedback; if `DATABASE_URL` is missing or the connection fails, a graceful message is printed instead of crashing
+- [x] All cells run top-to-bottom without errors
+- [x] No duplicated logic — everything comes from `src.*` imports
 
 ### Out of scope
 
@@ -216,11 +216,11 @@ Currently `log_interaction()` is only called with hardcoded demo data in the exp
 
 ### Acceptance criteria
 
-- [ ] `answer_question()` in `src/rag.py` calls `log_interaction()` after every successful LLM call, passing the real question, answer, and metadata (provider, model, tokens, latency, cost)
-- [ ] Logging is graceful: if `DATABASE_URL` is not set or the connection fails, the function still returns the answer without crashing
-- [ ] `init_db()` is called on first use (lazily) to ensure the table exists
-- [ ] The notebook's section 8 demo still works unchanged
-- [ ] All existing tests (`uv run pytest`) still pass
+- [x] `answer_question()` in `src/rag.py` calls `log_interaction()` after every successful LLM call, passing the real question, answer, and metadata (provider, model, tokens, latency, cost)
+- [x] Logging is graceful: if `DATABASE_URL` is not set or the connection fails, the function still returns the answer without crashing
+- [x] `init_db()` is called on first use (lazily) to ensure the table exists
+- [x] The notebook's section 8 demo still works unchanged
+- [x] All existing tests (`uv run pytest`) still pass
 
 ### Out of scope
 
@@ -245,20 +245,20 @@ Replace the manually written `data/ground_truth.json` with a script that uses an
 
 ### Acceptance criteria
 
-- [ ] `generate_ground_truth.py` exists at project root and is runnable via `uv run python generate_ground_truth.py`
-- [ ] It loads all 42 FAQs from `data/faq.csv` via `src.faqs.load_faqs()`
-- [ ] Uses OpenAI **structured output** (`client.responses.parse()` with Pydantic `Questions` model) — not `ask_llm()`
-- [ ] Model: `gpt-5.4-mini`, with pricing displayed after run ($0.75/M input, $4.50/M output)
-- [ ] Retry logic with exponential backoff on API errors
-- [ ] Processes FAQs in parallel using `ThreadPoolExecutor` + `tqdm` progress bar
-- [ ] Output is written to `data/ground_truth.csv` with columns `question,document_id` with ≥210 entries
-- [ ] All original 20 manual entries are replaced (files are overwritten entirely)
-- [ ] Re-running the script overwrites cleanly (no duplicates accumulate)
-- [ ] `src/ingest.py` adds a deterministic `id` field to each FAQ document in search index
-- [ ] `src/search.py` includes `id` in returned result dicts
-- [ ] `src/evaluate.py` refactored to match ground truth by `document_id` instead of question text
-- [ ] `pyproject.toml` has `tqdm` and `pydantic` added to dependencies
-- [ ] `uv run pytest` still passes (tests updated for ID-based matching)
+- [x] `generate_ground_truth.py` exists at project root and is runnable via `uv run python generate_ground_truth.py`
+- [x] It loads all 42 FAQs from `data/faq.csv` via `src.faqs.load_faqs()`
+- [x] Uses OpenAI **structured output** (`client.responses.parse()` with Pydantic `Questions` model) — not `ask_llm()`
+- [x] Model: `gpt-5.4-mini`, with pricing displayed after run ($0.75/M input, $4.50/M output)
+- [x] Retry logic with exponential backoff on API errors
+- [x] Processes FAQs in parallel using `ThreadPoolExecutor` + `tqdm` progress bar
+- [x] Output is written to `data/ground_truth.csv` with columns `question,document_id` with ≥210 entries
+- [x] All original 20 manual entries are replaced (files are overwritten entirely)
+- [x] Re-running the script overwrites cleanly (no duplicates accumulate)
+- [x] `src/ingest.py` adds a deterministic `id` field to each FAQ document in search index
+- [x] `src/search.py` includes `id` in returned result dicts
+- [x] `src/evaluate.py` refactored to match ground truth by `document_id` instead of question text
+- [x] `pyproject.toml` has `tqdm` and `pydantic` added to dependencies
+- [x] `uv run pytest` still passes (tests updated for ID-based matching)
 
 ### Out of scope
 
@@ -284,15 +284,15 @@ The `exploration.ipynb` notebook demonstrates every closed task from 1–9; this
 
 ### Acceptance criteria
 
-- [ ] A new top-level markdown heading "9. Evaluation" exists between "8. Postgres Logging Layer" and the existing "10. Cleanup" sections
-- [ ] The former "9. Cleanup" section is renumbered to "10. Cleanup"
-- [ ] `load_ground_truth`, `compute_hit_rate`, `compute_mrr`, and `evaluate_retrieval` are imported from `src.evaluate`
-- [ ] A code cell loads the ground truth CSV and prints the entry count and a few sample rows
-- [ ] A code cell demonstrates `compute_hit_rate()` and `compute_mrr()` on a small set of known results
-- [ ] A code cell calls `evaluate_retrieval()` with the `db/` indexes and displays hit rate@k and MRR@k with per-query details
-- [ ] A markdown cell notes that ground truth can be regenerated via `uv run python generate_ground_truth.py`
-- [ ] All cells run top-to-bottom without errors
-- [ ] No duplicated logic — everything comes from `src.*` imports
+- [x] A new top-level markdown heading "9. Evaluation" exists between "8. Postgres Logging Layer" and the existing "10. Cleanup" sections
+- [x] The former "9. Cleanup" section is renumbered to "10. Cleanup"
+- [x] `load_ground_truth`, `compute_hit_rate`, `compute_mrr`, and `evaluate_retrieval` are imported from `src.evaluate`
+- [x] A code cell loads the ground truth CSV and prints the entry count and a few sample rows
+- [x] A code cell demonstrates `compute_hit_rate()` and `compute_mrr()` on a small set of known results
+- [x] A code cell calls `evaluate_retrieval()` with the `db/` indexes and displays hit rate@k and MRR@k with per-query details
+- [x] A markdown cell notes that ground truth can be regenerated via `uv run python generate_ground_truth.py`
+- [x] All cells run top-to-bottom without errors
+- [x] No duplicated logic — everything comes from `src.*` imports
 
 ### Out of scope
 
@@ -365,17 +365,17 @@ Add DuckDB-backed keyword search (SQL ILIKE) to the evaluation pipeline alongsid
 
 ### Acceptance criteria
 
-- [ ] `keyword_search(query, k, db_path, docs_path, field_weights)` added to `src/search.py`
+- [x] `keyword_search(query, k, db_path, docs_path, field_weights)` added to `src/search.py`
   - Runs SQL ILIKE on DuckDB `faq.faq_resource` across `Question`, `Answer`, `Category`
   - `field_weights` controls per-column scoring (default: `{"Question": 2.0, "Answer": 1.0}`)
   - Returns same result format as `search()`
-- [ ] `evaluate_retrieval()` in `src/evaluate.py` accepts a pluggable `search_fn=` parameter
+- [x] `evaluate_retrieval()` in `src/evaluate.py` accepts a pluggable `search_fn=` parameter
   - Defaults to hybrid `search()` for backward compatibility
   - Extra kwargs forwarded to the search function
-- [ ] Notebook cell evaluates keyword search with `evaluate_retrieval(search_fn=keyword_search, db_path=..., docs_path=...)`
-- [ ] Notebook cell compares hybrid vs keyword hit rate@k and MRR@k side by side
-- [ ] Notebook cell demonstrates tuning `field_weights` and its effect on results
-- [ ] All cells run top-to-bottom without errors
+- [x] Notebook cell evaluates keyword search with `evaluate_retrieval(search_fn=keyword_search, db_path=..., docs_path=...)`
+- [x] Notebook cell compares hybrid vs keyword hit rate@k and MRR@k side by side
+- [x] Notebook cell demonstrates tuning `field_weights` and its effect on results
+- [x] All cells run top-to-bottom without errors
 
 ### Out of scope
 
@@ -399,13 +399,13 @@ Parameterise and sweep the three knobs that control retrieval quality — RRF K,
 
 ### Acceptance criteria
 
-- [ ] `RRF_K` made a parameter of `search()` (default `60`) instead of a module‑level constant
-- [ ] A notebook cell or script sweeps `RRF_K ∈ [10, 30, 60, 100]` and prints hit rate@k + MRR@k for each
-- [ ] A notebook cell or script sweeps `k ∈ [1, 3, 5, 10]` for hybrid and keyword search, printing a table of metric vs. k
-- [ ] A notebook cell or script sweeps BM25 `k1 ∈ [0.5, 1.0, 1.5, 2.0]` and `b ∈ [0.5, 0.75, 1.0]` and prints the best‑performing (k1, b) combination with its metrics
-- [ ] Rebuilds the BM25 index each time k1/b changes (or accepts the parameters at query time if the library supports it)
-- [ ] Uses `evaluate_retrieval(search_fn=…)` for all sweeps
-- [ ] All cells run top‑to‑bottom without errors
+- [x] `RRF_K` made a parameter of `search()` (default `60`) instead of a module‑level constant
+- [x] A notebook cell or script sweeps `RRF_K ∈ [10, 30, 60, 100]` and prints hit rate@k + MRR@k for each
+- [x] A notebook cell or script sweeps `k ∈ [1, 3, 5, 10]` for hybrid and keyword search, printing a table of metric vs. k
+- [x] A notebook cell or script sweeps BM25 `k1 ∈ [0.5, 1.0, 1.5, 2.0]` and `b ∈ [0.5, 0.75, 1.0]` and prints the best‑performing (k1, b) combination with its metrics
+- [x] Rebuilds the BM25 index each time k1/b changes (or accepts the parameters at query time if the library supports it)
+- [x] Uses `evaluate_retrieval(search_fn=…)` for all sweeps
+- [x] All cells run top‑to‑bottom without errors
 
 ### Out of scope
 
@@ -431,14 +431,14 @@ Add a `cat_weight` parameter to hybrid search and sweep category field weight fo
 
 ### Acceptance criteria
 
-- [ ] `search()` in `src/search.py` accepts `cat_weight=0` parameter
+- [x] `search()` in `src/search.py` accepts `cat_weight=0` parameter
   - Tokenizes the query and compares term overlap with each document's `category` field
   - Adds the category‑match score as a third entry point in the RRF fusion (alongside BM25 and FAISS ranks)
   - Default `0` means no category boost (backward compatible)
-- [ ] A notebook cell sweeps `cat_weight ∈ [0, 0.5, 1, 2, 3]` for hybrid search and prints hit rate@k + MRR@k for each
-- [ ] A notebook cell sweeps keyword-search Category field weight `∈ [0, 0.5, 1, 2, 3]` with `Question=1, Answer=1` fixed and prints metrics
-- [ ] Both sweeps use `evaluate_retrieval(search_fn=…)`
-- [ ] All cells run top‑to‑bottom without errors
+- [x] A notebook cell sweeps `cat_weight ∈ [0, 0.5, 1, 2, 3]` for hybrid search and prints hit rate@k + MRR@k for each
+- [x] A notebook cell sweeps keyword-search Category field weight `∈ [0, 0.5, 1, 2, 3]` with `Question=1, Answer=1` fixed and prints metrics
+- [x] Both sweeps use `evaluate_retrieval(search_fn=…)`
+- [x] All cells run top‑to‑bottom without errors
 
 ### Out of scope
 
