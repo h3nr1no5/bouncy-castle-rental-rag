@@ -19,14 +19,14 @@ FAQ entries:
 def _log_interaction(question, answer, metadata):
     global _db_inited
     if not os.environ.get("DATABASE_URL"):
-        return
+        return None
     try:
         if not _db_inited:
             init_db()
             _db_inited = True
-        log_interaction(question, answer, metadata=metadata)
+        return log_interaction(question, answer, metadata=metadata)
     except Exception:
-        pass
+        return None
 
 
 def _format_contexts(contexts):
@@ -61,7 +61,7 @@ def answer_question(
         openai_model=openai_model,
     )
 
-    _log_interaction(
+    interaction_id = _log_interaction(
         question=question,
         answer=result["response"],
         metadata={
@@ -81,6 +81,7 @@ def answer_question(
         "latency": result["latency"],
         "cost": result["cost"],
         "tokens": result["tokens"],
+        "interaction_id": interaction_id,
     }
 
 

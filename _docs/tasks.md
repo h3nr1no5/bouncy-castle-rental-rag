@@ -354,11 +354,34 @@ Description: Write a script that takes the test questions, runs them through the
 
 ---
 
-## 11.  chat UI
+## 11. Chat UI
 
-Goal: Build a frontend app with a chat input, answer display, and thumbs up/down feedback.
+### Goal
 
-Description: Write `app.py` that provides a simple chat interface: text input at the bottom, conversation history above, and a thumbs-up / thumbs-down button on each assistant response. Display metadata (model, latency, tokens) in an expandable section.
+Build a FastAPI chat backend with a self-contained static frontend (chat input, answer display, thumbs up/down feedback) that can later be embedded in a website.
+
+### Acceptance criteria
+
+- [ ] `app.py` is a FastAPI app exposing `POST /api/chat` and `POST /api/feedback`
+  - `POST /api/chat` runs `answer_question()` and returns answer, contexts, model, provider, latency, cost, tokens, `interaction_id`
+  - `POST /api/feedback` persists thumbs up/down via `update_feedback()`; unknown id → 404; invalid feedback → 422
+- [ ] `answer_question()` in `src/rag.py` returns the Postgres `interaction_id` so feedback can be persisted (`None` when logging is skipped or fails)
+- [ ] `GET /health` returns 200
+- [ ] CORS enabled so the API can be called from a website
+- [ ] Static UI in `ui/` with no build step: text input at the bottom, conversation history above, thumbs up/down on each assistant response, metadata (model, latency, tokens, cost, contexts) in an expandable section
+- [ ] Thumbs up/down persist via `/api/feedback`; disabled with a hint when `interaction_id` is null
+- [ ] Failed LLM calls show a graceful error message in the UI
+- [ ] `uv run pytest` passes (new `tests/test_api.py`, updated `tests/test_rag.py`)
+
+### Out of scope
+
+- Monitoring dashboard (handled in task 12)
+- Multi-turn conversation memory — history is display-only
+
+### Constraints
+
+- FastAPI + static HTML/JS/CSS (no Streamlit)
+- New dependencies: `fastapi`, `uvicorn` (runtime), `httpx` (dev)
 
 ---
 
@@ -374,7 +397,7 @@ Description: Provision a Grafana dashboard config (JSON or YAML) that connects t
 
 Goal: Package the app, Postgres, and Grafana so everything starts with `docker compose up`.
 
-Description: Write a `Dockerfile` for the Streamlit app, a `docker-compose.yaml` that defines `app`, `postgres`, and `grafana` services with proper environment variables, volume mounts, and network config. Add a `.env.example` file.
+Description: Write a `Dockerfile` for the FastAPI app (served via uvicorn), a `docker-compose.yaml` that defines `app`, `postgres`, and `grafana` services with proper environment variables, volume mounts, and network config. Add a `.env.example` file.
 
 ---
 

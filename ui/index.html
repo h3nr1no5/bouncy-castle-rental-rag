@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bouncy Castle FAQ</title>
+<style>
+  :root {
+    --bg: #f4f6f8;
+    --surface: #ffffff;
+    --border: #e2e8f0;
+    --text: #1a202c;
+    --muted: #64748b;
+    --accent: #2f6fed;
+    --accent-soft: #eaf1ff;
+    --user-bubble: #2f6fed;
+    --user-text: #ffffff;
+    --error: #b91c1c;
+    --error-soft: #fee2e2;
+    --radius: 14px;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body { height: 100%; }
+
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    padding: 14px 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    font-size: 18px;
+    font-weight: 600;
+  }
+  header span { color: var(--muted); font-weight: 400; font-size: 13px; margin-left: 8px; }
+
+  #messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-width: 860px;
+    width: 100%;
+    margin: 0 auto;
+  }
+
+  .msg { display: flex; flex-direction: column; max-width: 78%; }
+  .msg.user { align-self: flex-end; align-items: flex-end; }
+  .msg.assistant, .msg.error { align-self: flex-start; align-items: flex-start; }
+
+  .bubble {
+    padding: 12px 16px;
+    border-radius: var(--radius);
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .msg.user .bubble { background: var(--user-bubble); color: var(--user-text); border-bottom-right-radius: 4px; }
+  .msg.assistant .bubble { background: var(--surface); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
+  .msg.error .bubble { background: var(--error-soft); border: 1px solid var(--error); color: var(--error); border-bottom-left-radius: 4px; }
+
+  .meta {
+    margin-top: 8px;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  button.feedback {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background .15s ease, border-color .15s ease;
+  }
+  button.feedback:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+  button.feedback.selected { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+  button.feedback:disabled { opacity: .45; cursor: not-allowed; }
+
+  .hint { font-size: 12px; color: var(--muted); }
+
+  details.metadata {
+    margin-top: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 6px 12px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  details.metadata summary { cursor: pointer; font-weight: 600; color: var(--text); }
+  details.metadata dl { margin: 8px 0 4px; display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; }
+  details.metadata dt { color: var(--muted); }
+  details.metadata dd { margin: 0; color: var(--text); }
+  details.metadata .ctx {
+    margin: 6px 0 0;
+    padding: 8px 10px;
+    background: var(--bg);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+  details.metadata .ctx b { color: var(--text); }
+
+  form#chat-form {
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    padding: 14px 20px;
+    display: flex;
+    gap: 10px;
+    max-width: 900px;
+    width: 100%;
+    margin: 0 auto;
+  }
+  form#chat-form input {
+    flex: 1;
+    padding: 12px 16px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-size: 15px;
+    outline: none;
+  }
+  form#chat-form input:focus { border-color: var(--accent); }
+  form#chat-form button {
+    padding: 12px 22px;
+    border: none;
+    border-radius: 999px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 15px;
+    cursor: pointer;
+  }
+  form#chat-form button:disabled { opacity: .6; cursor: not-allowed; }
+</style>
+</head>
+<body>
+  <header>Bouncy Castle FAQ<span>Ask about pricing, sizes, delivery, booking, and more</span></header>
+
+  <main id="messages" aria-live="polite"></main>
+
+  <form id="chat-form">
+    <input id="question-input" type="text" placeholder="Ask a question..." autocomplete="off" autofocus>
+    <button id="send-btn" type="submit">Send</button>
+  </form>
+
+<script>
+(function () {
+  const messagesEl = document.getElementById("messages");
+  const form = document.getElementById("chat-form");
+  const input = document.getElementById("question-input");
+  const sendBtn = document.getElementById("send-btn");
+
+  function addMessage(kind, text) {
+    const wrap = document.createElement("div");
+    wrap.className = "msg " + kind;
+    const bubble = document.createElement("div");
+    bubble.className = "bubble";
+    bubble.textContent = text;
+    wrap.appendChild(bubble);
+    messagesEl.appendChild(wrap);
+    scrollToBottom();
+    return wrap;
+  }
+
+  function scrollToBottom() {
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function fmtTokens(tokens) {
+    if (!tokens) return "n/a";
+    if (typeof tokens === "number") return String(tokens);
+    const parts = [];
+    if (tokens.prompt != null) parts.push(tokens.prompt + " prompt");
+    if (tokens.completion != null) parts.push(tokens.completion + " completion");
+    if (tokens.total != null) parts.push(tokens.total + " total");
+    return parts.join(", ") || "n/a";
+  }
+
+  function fmtCost(cost) {
+    if (cost == null) return "n/a";
+    return "$" + Number(cost).toFixed(6);
+  }
+
+  function addMetadata(wrap, data) {
+    const details = document.createElement("details");
+    details.className = "metadata";
+    const summary = document.createElement("summary");
+    summary.textContent = "Metadata: model, latency, tokens, cost, contexts";
+    details.appendChild(summary);
+
+    const dl = document.createElement("dl");
+    const rows = [
+      ["Model", data.model || "n/a"],
+      ["Provider", data.provider || "n/a"],
+      ["Latency", data.latency != null ? data.latency + " s" : "n/a"],
+      ["Tokens", fmtTokens(data.tokens)],
+      ["Cost", fmtCost(data.cost)],
+    ];
+    for (const [k, v] of rows) {
+      const dt = document.createElement("dt");
+      dt.textContent = k;
+      const dd = document.createElement("dd");
+      dd.textContent = v;
+      dl.appendChild(dt);
+      dl.appendChild(dd);
+    }
+    details.appendChild(dl);
+
+    if (Array.isArray(data.contexts) && data.contexts.length) {
+      const ctxHeading = document.createElement("p");
+      ctxHeading.style.margin = "8px 0 2px";
+      ctxHeading.style.fontWeight = "600";
+      ctxHeading.style.color = "var(--text)";
+      ctxHeading.textContent = "Contexts";
+      details.appendChild(ctxHeading);
+      data.contexts.forEach(function (ctx) {
+        const p = document.createElement("div");
+        p.className = "ctx";
+        const head = document.createElement("b");
+        head.textContent = "[" + (ctx.category || "?") + "] " + (ctx.question || "");
+        const body = document.createElement("div");
+        body.textContent = ctx.answer || ctx.text || "";
+        p.appendChild(head);
+        p.appendChild(body);
+        details.appendChild(p);
+      });
+    }
+    wrap.appendChild(details);
+  }
+
+  function addFeedbackControls(wrap, interactionId) {
+    const meta = document.createElement("div");
+    meta.className = "meta";
+
+    if (interactionId == null) {
+      const hint = document.createElement("span");
+      hint.className = "hint";
+      hint.title = "No interaction id was returned for this answer, so feedback cannot be saved.";
+      hint.textContent = "Feedback unavailable";
+      meta.appendChild(hint);
+      wrap.appendChild(meta);
+      return;
+    }
+
+    const recordFeedback = function (feedback, btn) {
+      btn.disabled = true;
+      fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ interaction_id: interactionId, feedback: feedback }),
+      }).then(function (resp) {
+        if (resp.ok) {
+          btn.classList.add("selected");
+          upBtn.disabled = true;
+          downBtn.disabled = true;
+        } else {
+          btn.disabled = false;
+        }
+      }).catch(function () {
+        btn.disabled = false;
+      });
+    };
+
+    const upBtn = document.createElement("button");
+    upBtn.className = "feedback";
+    upBtn.type = "button";
+    upBtn.textContent = "\u2191 Helpful";
+    upBtn.addEventListener("click", function () { recordFeedback("up", upBtn); });
+
+    const downBtn = document.createElement("button");
+    downBtn.className = "feedback";
+    downBtn.type = "button";
+    downBtn.textContent = "\u2193 Not helpful";
+    downBtn.addEventListener("click", function () { recordFeedback("down", downBtn); });
+
+    meta.appendChild(upBtn);
+    meta.appendChild(downBtn);
+    wrap.appendChild(meta);
+  }
+
+  function renderAssistant(data) {
+    const wrap = addMessage("assistant", data.answer);
+    addMetadata(wrap, data);
+    addFeedbackControls(wrap, data.interaction_id);
+  }
+
+  function renderError(err) {
+    const msg = err && err.detail ? err.detail : "Something went wrong. Please try again.";
+    addMessage("error", msg);
+  }
+
+  function setBusy(busy) {
+    input.disabled = busy;
+    sendBtn.disabled = busy;
+    if (busy) { input.setAttribute("placeholder", "Thinking..."); }
+    else { input.setAttribute("placeholder", "Ask a question..."); input.focus(); }
+  }
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    const question = input.value.trim();
+    if (!question) return;
+    addMessage("user", question);
+    input.value = "";
+    setBusy(true);
+
+    fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question: question }),
+    })
+      .then(function (resp) {
+        return resp.json().then(function (data) {
+          return { ok: resp.ok, data: data };
+        });
+      })
+      .then(function ({ ok, data }) {
+        if (ok) renderAssistant(data);
+        else renderError(data);
+      })
+      .catch(function () {
+        renderError({ detail: "Network error: could not reach the server. Please try again." });
+      })
+      .finally(function () {
+        setBusy(false);
+      });
+  });
+})();
+</script>
+</body>
+</html>

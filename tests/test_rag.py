@@ -135,3 +135,41 @@ class TestAnswerQuestion:
         _, kwargs = mock_llm.call_args
         assert kwargs["groq_model"] == "mixtral-8x7b-32768"
         assert kwargs["openai_model"] == "gpt-5.4-mini"
+
+    def test_returns_none_interaction_id_when_logging_skipped(self):
+        with (
+            patch("src.rag.search", return_value=SAMPLE_CONTEXTS),
+            patch("src.rag.ask_llm", return_value=LLM_RESULT),
+            patch("src.rag._log_interaction", return_value=None),
+        ):
+            result = answer_question("cost")
+
+        assert result["interaction_id"] is None
+
+    def test_returns_interaction_id_from_logging(self):
+        with (
+            patch("src.rag.search", return_value=SAMPLE_CONTEXTS),
+            patch("src.rag.ask_llm", return_value=LLM_RESULT),
+            patch("src.rag._log_interaction", return_value=42),
+        ):
+            result = answer_question("cost")
+
+        assert result["interaction_id"] == 42
+
+    def test_passes_metadata_to_log_interaction(self):
+        with (
+            patch("src.rag.search", return_value=SAMPLE_CONTEXTS),
+            patch("src.rag.ask_llm", return_value=LLM_RESULT),
+            patch("src.rag._log_interaction") as mock_log,
+        ):
+            answer_question("cost")
+
+        mock_log.assert_called_once()
+        _, kwargs = mock_log.call_args
+        assert kwargs["question"] == "cost"
+        assert kwargs["answer"] == LLM_RESULT["response"]
+        assert kwargs["metadata"]["model"] == LLM_RESULT["model"]
+        assert kwargs["metadata"]["provider"] == LLM_RESULT["provider"]
+        assert kwargs["metadata"]["tokens"] == LLM_RESULT["tokens"]
+        assert kwargs["metadata"]["latency"] == LLM_RESULT["latency"]
+        assert kwargs["metadata"]["cost"] == LLM_RESULT["cost"]
