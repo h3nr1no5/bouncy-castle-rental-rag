@@ -354,9 +354,9 @@ Description: Write a script that takes the test questions, runs them through the
 
 ---
 
-## 11. Streamlit chat UI
+## 11.  chat UI
 
-Goal: Build a Streamlit app with a chat input, answer display, and thumbs up/down feedback.
+Goal: Build a frontend app with a chat input, answer display, and thumbs up/down feedback.
 
 Description: Write `app.py` that provides a simple chat interface: text input at the bottom, conversation history above, and a thumbs-up / thumbs-down button on each assistant response. Display metadata (model, latency, tokens) in an expandable section.
 
