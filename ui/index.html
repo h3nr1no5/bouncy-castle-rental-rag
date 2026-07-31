@@ -276,13 +276,13 @@
     const upBtn = document.createElement("button");
     upBtn.className = "feedback";
     upBtn.type = "button";
-    upBtn.textContent = "\u2191 Helpful";
+    upBtn.textContent = "\uD83D\uDC4D Helpful";
     upBtn.addEventListener("click", function () { recordFeedback("up", upBtn); });
 
     const downBtn = document.createElement("button");
     downBtn.className = "feedback";
     downBtn.type = "button";
-    downBtn.textContent = "\u2193 Not helpful";
+    downBtn.textContent = "\uD83D\uDC4E Not helpful";
     downBtn.addEventListener("click", function () { recordFeedback("down", downBtn); });
 
     meta.appendChild(upBtn);
