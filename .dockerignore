@@ -1,0 +1,17 @@
+.env
+.envrc
+db/
+.venv
+.git
+.gitignore
+__pycache__
+*.pyc
+.pytest_cache
+.opencode
+tests/
+_docs/
+docs/
+exploration.ipynb
+.idea
+.vscode
+.DS_Store

@@ -15,7 +15,17 @@ dependencies = [
     "pydantic>=2.11",
     "fastapi>=0.115",
     "uvicorn>=0.34",
+    "torch>=2.6,<2.14",
 ]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+priority = "primary"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
 
 [project.optional-dependencies]
 dev = [
