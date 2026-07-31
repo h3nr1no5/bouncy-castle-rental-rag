@@ -40,7 +40,7 @@ class TestChat:
         with (
             patch("src.rag.search", return_value=SAMPLE_CONTEXTS),
             patch("src.rag.ask_llm", return_value=LLM_RESULT),
-            patch("src.rag._log_interaction", return_value=7),
+            patch("app._log_interaction", return_value=7),
         ):
             resp = client.post("/api/chat", json={"question": "How much does a castle cost?"})
 
@@ -59,7 +59,7 @@ class TestChat:
         with (
             patch("src.rag.search", return_value=SAMPLE_CONTEXTS),
             patch("src.rag.ask_llm", return_value=LLM_RESULT),
-            patch("src.rag._log_interaction", return_value=None),
+            patch("app._log_interaction", return_value=None),
         ):
             resp = client.post("/api/chat", json={"question": "cost"})
 

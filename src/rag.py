@@ -1,11 +1,7 @@
-import os
 import sys
 
-from src.db import init_db, log_interaction
 from src.llm import ask_llm
 from src.search import search
-
-_db_inited = False
 
 SYSTEM_PROMPT_TEMPLATE = """You are a helpful rental FAQ assistant for a bouncy castle rental company.
 Answer the user's question based on the following FAQ entries.
@@ -14,19 +10,6 @@ If the FAQ entries do not contain enough information to answer the question, say
 
 FAQ entries:
 {contexts}"""
-
-
-def _log_interaction(question, answer, metadata):
-    global _db_inited
-    if not os.environ.get("DATABASE_URL"):
-        return None
-    try:
-        if not _db_inited:
-            init_db()
-            _db_inited = True
-        return log_interaction(question, answer, metadata=metadata)
-    except Exception:
-        return None
 
 
 def _format_contexts(contexts):
@@ -61,18 +44,6 @@ def answer_question(
         openai_model=openai_model,
     )
 
-    interaction_id = _log_interaction(
-        question=question,
-        answer=result["response"],
-        metadata={
-            "provider": result["provider"],
-            "model": result["model"],
-            "tokens": result["tokens"],
-            "latency": result["latency"],
-            "cost": result["cost"],
-        },
-    )
-
     return {
         "answer": result["response"],
         "contexts": contexts,
@@ -81,7 +52,6 @@ def answer_question(
         "latency": result["latency"],
         "cost": result["cost"],
         "tokens": result["tokens"],
-        "interaction_id": interaction_id,
     }
 
 

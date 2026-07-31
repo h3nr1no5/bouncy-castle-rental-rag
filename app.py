@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from src.db import update_feedback
+from src.db import init_db, log_interaction, update_feedback
 from src.rag import answer_question
 
 try:
@@ -35,6 +35,22 @@ class FeedbackRequest(BaseModel):
     feedback: Literal["up", "down"]
 
 
+_db_inited = False
+
+
+def _log_interaction(question, answer, metadata):
+    global _db_inited
+    if not os.environ.get("DATABASE_URL"):
+        return None
+    try:
+        if not _db_inited:
+            init_db()
+            _db_inited = True
+        return log_interaction(question, answer, metadata=metadata)
+    except Exception:
+        return None
+
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
@@ -43,7 +59,19 @@ def health():
 @app.post("/api/chat")
 def chat(req: ChatRequest):
     try:
-        return answer_question(question=req.question)
+        result = answer_question(question=req.question)
+        result["interaction_id"] = _log_interaction(
+            question=req.question,
+            answer=result["answer"],
+            metadata={
+                "provider": result["provider"],
+                "model": result["model"],
+                "tokens": result["tokens"],
+                "latency": result["latency"],
+                "cost": result["cost"],
+            },
+        )
+        return result
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Failed to get an answer: {e}")
 
