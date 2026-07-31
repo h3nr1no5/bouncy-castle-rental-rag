@@ -599,3 +599,54 @@ Add a `cat_weight` parameter to hybrid search and sweep category field weight fo
 - Default `cat_weight=0` must not change existing hybrid search behaviour
 - Sequential run assumed: sections 1–5 must have already built indexes and DuckDB in `db/`
 - No new dependencies
+
+---
+
+## 18. Deploy to Render (app + Postgres + Grafana)
+
+### Goal
+
+Deploy the RAG app, a managed Postgres, and Grafana monitoring to Render so the service runs in the cloud behind a public URL — using the same env-only, port-portable image built in Task 13 (no Docker Compose on Render).
+
+### Description
+
+Render builds the app image straight from the existing `Dockerfile` and injects `PORT`; the entrypoint already reads `$PORT`. This task wires up the three components:
+
+- **App service** — web service from the Dockerfile; env vars `GROQ_API_KEY`, `DATABASE_URL`; `HEALTHCHECK` /health at `$PORT`; non-root `app` user. Chat uses Groq only — `OPENAI_API_KEY` is **not** provided to the cloud provider (local-only).
+- **Index persistence** — compose's `appdb:/app/db` volume does not exist on Render, so indexes are rebuilt on every cold start (slow, needs outbound HF Hub to download the fastembed ONNX model). Decision: pre-bake `bm25_index.pkl` / `faiss_index.bin` / `ingest_docs.json` into the image at build time. `.dockerignore` excludes `db/`, so the Dockerfile runs `build_indexes()` in a build step (before `USER app`), which also warms the fastembed ONNX cache under `HF_HOME=/app/.cache` — redeploys then skip the rebuild entirely.
+- **Postgres** — decision: Neon free tier (external, persistent — data never pauses, unlike Supabase's ~1 week pause). Point `DATABASE_URL` at the Neon database (e.g. `neondb`) and let `init_db()` create the `rag_logs` table (schema is self-managed via `CREATE TABLE IF NOT EXISTS`). Connect via direct `:5432` with `?sslmode=require` (PG16); psycopg2 handles the URL unchanged. Locally, `.env` keeps `DATABASE_URL` → local Postgres and adds `DATABASE_URL_CLOUD` → the Neon URL; on Render, `DATABASE_URL` holds the Neon URL.
+- **Grafana** — dashboard is a read-only, file-provisioned artifact (`grafana/dashboard.json` + `grafana/provisioning/`). Decision: host it as a 2nd Render web service from a tiny `grafana/Dockerfile` (`FROM grafana/grafana:10.4.3` + COPY provisioning + dashboard.json). The only blocker was the datasource `url: postgres:5432` with hardcoded credentials / `sslmode: disable`; it becomes env-driven via Grafana's `$VAR` interpolation in provisioning YAML (`POSTGRES_HOST` / `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` / `POSTGRES_PORT`).
+
+### Decisions (resolved)
+
+- **Postgres provider + fallback**: Neon free tier, env-per-environment only (Option B — no code change). When the DB is unreachable, logs are silently dropped; the app already degrades gracefully (`_log_interaction()` in `app.py` returns `None` and chat still works). No `DATABASE_URL_FALLBACK` / `src/db.py` changes.
+- **Grafana hosting**: 2nd Render web service from `grafana/Dockerfile` (Option 1), both services `plan: free`.
+- **Provisioning style**: single `render.yaml` Blueprint (app + grafana web services; secrets as `sync: false` placeholders filled in the Render dashboard, never committed).
+
+### Acceptance criteria
+
+- [ ] Render web service deploys the existing `Dockerfile`; `/health` returns 200 at the deployed `$PORT`
+- [ ] A real chat round-trip works against the deployed URL and feedback persists to Postgres (`rag_logs` table auto-created by `init_db()`) in the Neon database
+- [ ] Indexes are pre-baked into the image at build time; redeploys skip the index rebuild (cold start is seconds, not minutes, and no HF Hub download happens at runtime)
+- [ ] `DATABASE_URL` on Render holds the Neon URL (direct `:5432`, `sslmode=require`); local `.env` keeps `DATABASE_URL` → local Postgres and `DATABASE_URL_CLOUD` → Neon
+- [ ] Grafana (2nd Render web service) renders all 6 panels against deployed `rag_logs` data, with the datasource url/user/password/database/sslmode read from env (Grafana `$VAR` interpolation) instead of hardcoded `postgres:5432` / `postgres` / `postgres`
+- [ ] Existing `rag_logs` data migrated to Neon via `pg_dump` / `psql` (`--no-owner --no-privileges`, using `$DATABASE_URL_CLOUD`), verified by row-count and `created_at` range parity before cutover (one-time, for current local Postgres data)
+- [ ] `uv run pytest` still green; no functional changes to retrieval/eval code
+- [ ] README updated with the deployed URL, env var setup, and how the DB-fallback behaves when the Neon connection is unavailable (ties into Task 14)
+
+### Out of scope
+
+- CI/CD pipelines or multi-region HA
+- Grafana alerts, notifications, SSO, or auth beyond defaults
+- Schema changes to `rag_logs` (no new columns)
+- Render Postgres (trial deleted after 30 days), Render Disks (paid), or Grafana Cloud
+
+### Constraints
+
+- Render builds the image from the Dockerfile directly — Docker Compose is not used
+- Env-only configuration; secrets via Render env vars / secret files, never baked into the image
+- No new Python dependencies; no changes to `src/db.py` (Option B)
+- Keep the Task 13 size approach (fastembed ONNX, ~618MB image); pre-baking adds the ONNX cache (~90MB) to a cached build layer
+- Neon free tier: 0.5GB storage, scale-to-zero (compute suspends after ~5 min idle; data never pauses)
+- Render services deploy in a US region (`region: oregon` in `render.yaml`) so the app's outbound IP to Groq is US-based; Groq does not IP-allowlist but rejects unsupported regions
+- On Render only `GROQ_API_KEY` is set (no `OPENAI_API_KEY`); `ask_llm()` in `src/llm.py` returns on a successful Groq call, so chat works without OpenAI. If Groq fails while OpenAI is unset, `/api/chat` returns 502 (the fallback chain requires `OPENAI_API_KEY`)
