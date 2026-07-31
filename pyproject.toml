@@ -6,7 +6,7 @@ requires-python = ">=3.11"
 dependencies = [
     "dlt[duckdb]>=1.29.1",
     "rank-bm25>=0.2.2",
-    "sentence-transformers>=3.4",
+    "fastembed>=0.8.0",
     "faiss-cpu>=1.10",
     "groq>=0.18",
     "openai>=1.68",
@@ -15,17 +15,7 @@ dependencies = [
     "pydantic>=2.11",
     "fastapi>=0.115",
     "uvicorn>=0.34",
-    "torch>=2.6,<2.14",
 ]
-
-[[tool.uv.index]]
-name = "pytorch-cpu"
-url = "https://download.pytorch.org/whl/cpu"
-priority = "primary"
-explicit = true
-
-[tool.uv.sources]
-torch = { index = "pytorch-cpu" }
 
 [project.optional-dependencies]
 dev = [

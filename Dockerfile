@@ -1,22 +1,20 @@
 FROM ghcr.io/astral-sh/uv:python3.11-bookworm-slim AS builder
 
-ENV UV_COMPILE_BYTECODE=1 \
-    UV_LINK_MODE=copy
+ENV UV_LINK_MODE=copy
 
 WORKDIR /app
 
 COPY pyproject.toml uv.lock ./
 COPY . .
 
-RUN uv sync --frozen --no-dev \
-        --index-url https://download.pytorch.org/whl/cpu \
-        --extra-index-url https://pypi.org/simple \
-        --index-strategy first-index \
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends binutils \
+    && rm -rf /var/lib/apt/lists/* \
+    && uv sync --frozen --no-dev \
     && rm -rf /root/.cache/uv \
     && find /app/.venv -name '*.pyi' -delete \
-    && rm -rf \
-        /app/.venv/lib/python3.11/site-packages/torch/include \
-    && find /app/.venv/lib/python3.11/site-packages/torch/bin -type f ! -name 'torch_shm_manager' -delete
+    && find /app/.venv -name '*.so' ! -path '*/*.libs/*' -exec strip --strip-unneeded {} + \
+    && find /app/.venv -name '__pycache__' -type d -prune -exec rm -rf {} +
 
 FROM python:3.11-slim AS runtime
 

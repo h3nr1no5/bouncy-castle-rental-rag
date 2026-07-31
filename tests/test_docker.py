@@ -55,30 +55,25 @@ class TestDockerfile:
         assert "--frozen" in sync_line
         assert "--no-dev" in sync_line
 
-    def test_torch_installed_cpu_only(self, dockerfile, pyproject):
-        assert "https://download.pytorch.org/whl/cpu" in dockerfile
-        indexes = [i for i in pyproject.get("tool", {}).get("uv", {}).get("index", [])]
-        assert any(i.get("url") == "https://download.pytorch.org/whl/cpu" for i in indexes)
+    def test_embeddings_use_fastembed_not_torch(self, dockerfile, pyproject):
+        assert "fastembed" in str(pyproject["project"]["dependencies"])
+        assert "https://download.pytorch.org/whl/cpu" not in dockerfile
+        assert "torch" not in str(pyproject["project"]["dependencies"])
 
-    def test_torch_source_pinned_to_cpu_index(self, pyproject):
-        sources = pyproject.get("tool", {}).get("uv", {}).get("sources", {})
-        assert sources.get("torch") == {"index": "pytorch-cpu"}
-
-    def test_torch_is_a_direct_dependency(self, pyproject):
+    def test_fastembed_is_a_direct_dependency(self, pyproject):
         deps = pyproject["project"]["dependencies"]
-        assert any(dep.startswith("torch") for dep in deps)
+        assert any(dep.startswith("fastembed") for dep in deps)
 
-    def test_lock_resolves_torch_from_cpu_index(self, lock):
-        blocks = lock.split("[[package]]")
-        torch_blocks = [
-            b for b in blocks if b.lstrip().startswith('name = "torch"')
-        ]
-        assert torch_blocks
+    def test_no_pytorch_cpu_index_in_pyproject(self, pyproject):
+        indexes = pyproject.get("tool", {}).get("uv", {}).get("index", [])
         assert all(
-            "download.pytorch.org/whl/cpu" in b and "cuda" not in b.lower()
-            for b in torch_blocks
+            i.get("url") != "https://download.pytorch.org/whl/cpu" for i in indexes
         )
-        assert any("+cpu" in b for b in torch_blocks)
+
+    def test_lock_has_fastembed_and_no_torch(self, lock):
+        blocks = lock.split("[[package]]")
+        assert any(b.lstrip().startswith('name = "fastembed"') for b in blocks)
+        assert not any(b.lstrip().startswith('name = "torch"') for b in blocks)
 
     def test_runtime_base_is_python_311_slim(self, dockerfile):
         last_stage = [line for line in dockerfile.splitlines() if line.startswith("FROM ")][-1]

@@ -51,7 +51,7 @@ Description: Write a dlt pipeline definition that reads the FAQ CSV via `dlt.sou
 
 Goal: Create an ingestion script that builds a BM25 index + FAISS vector index from the FAQ data.
 
-Description: Write `src/ingest.py` that reads FAQ entries via `load_faqs()`, computes TF-IDF/BM25 tokens with `rank_bm25`, generates embeddings with `sentence-transformers/all-MiniLM-L6-v2`, stores vectors in a FAISS index, and saves both indexes to disk so they don't rebuild on every run.
+Description: Write `src/ingest.py` that reads FAQ entries via `load_faqs()`, computes TF-IDF/BM25 tokens with `rank_bm25`, generates embeddings with `all-MiniLM-L6-v2` (via `fastembed`, ONNX Runtime), stores vectors in a FAISS index, and saves both indexes to disk so they don't rebuild on every run.
 
 ---
 
@@ -447,7 +447,8 @@ Description: Write a `Dockerfile` for the FastAPI app (served via uvicorn), a `d
 Dockerfile (config assertions in `tests/test_docker.py`, no Docker daemon required):
 
 - [x] Multi-stage `Dockerfile` builds with `uv sync --frozen --no-dev` so the runtime image contains only the compiled `.venv` and app code, not the package manager or build caches
-- [x] Torch is installed CPU-only from `https://download.pytorch.org/whl/cpu` (not the default CUDA build) — this is the dominant size lever (~200MB vs ~800MB+) and keeps the image near the ~512MB free-tier target
+- [x] Embeddings run on ONNX Runtime via `fastembed` (no torch/sentence-transformers/CUDA in the image) — this is the dominant size lever (~800MB+ of torch/scipy/transformers removed) and brings the image near the ~512MB free-tier target
+- [x] The builder stage strips `*.so` debug symbols and deletes `*.pyi` stubs / `__pycache__` from `.venv` so the runtime layer carries only the compiled libraries
 - [x] Runtime image is `python:3.11-slim`-based, runs as a non-root `app` user (uid 1000), and sets `PYTHONUNBUFFERED=1` / `PYTHONDONTWRITEBYTECODE=1`
 - [x] App serves via `uvicorn app:app` on `0.0.0.0` on port `$PORT` (default `8000`) so the same image runs on any host that injects `PORT`
 - [x] Indexes are built at container startup when `db/` files are missing: `docker-entrypoint.sh` calls `src.ingest.build_indexes()` if any of `bm25_index.pkl` / `faiss_index.bin` / `ingest_docs.json` is absent, then `exec`s uvicorn
@@ -468,7 +469,7 @@ Verification:
 - [x] `docker compose config` parses cleanly; `docker compose up --build -d` starts all three services; `/health` returns 200, a chat round-trip works, and Grafana loads at `:3000`
 - [x] Image size reported via `docker images` and noted against the ~512MB free-tier target
 
-Image size: `llm-zoomcamp-rag-app` = 1.93GB (down from 8.8GB with default CUDA torch). The CPU-only torch pin from `download.pytorch.org/whl/cpu` accounts for most of the reduction; the runtime `.venv` layer was also trimmed of `torch/include`, non-essential `torch/bin` binaries (keeping `torch_shm_manager`), and `*.pyi` stubs. The remaining ~1.9GB is dominated by hard dependencies that cannot be dropped (`torch/lib` ~326MB, `scipy` ~122MB, `transformers` ~113MB, `sympy` ~80MB, `numpy` ~70MB, `scikit-learn` ~59MB, `duckdb` ~52MB) — with this embedding stack the floor is ~1.5GB, well above the ~512MB target.
+Image size: `llm-zoomcamp-rag-app` = 618MB (down from 1.93GB with the torch stack, which was itself down from 8.8GB with default CUDA torch). The torch stack was replaced with `fastembed` (ONNX Runtime), dropping `torch` (~527MB), `scipy` (~121MB), `transformers` (~113MB), `sympy` (~80MB), `scikit-learn` (~59MB), `networkx`, and `sentence-transformers`. The builder stage additionally strips `*.so` debug symbols (excluding bundled `*.libs`), removes `*.pyi` stubs and `__pycache__`, and the runtime keeps `UV_LINK_MODE=copy` so no caches cross stages. The remaining ~618MB is dominated by hard dependencies: base image + system libs, `numpy` (~69MB), `duckdb` (~52MB), `onnxruntime` (~51MB), `faiss` (~31MB), `pillow` (~25MB), `openai` (~20MB) — with this embedding stack the floor is ~600MB, within ~20% of the ~512MB target.
 
 ### Out of scope
 
@@ -479,11 +480,10 @@ Image size: `llm-zoomcamp-rag-app` = 1.93GB (down from 8.8GB with default CUDA t
 ### Constraints
 
 - Use Docker Compose
-- No new Python dependencies — shrinking is via image/layer choices only:
-  - CPU-only torch from `https://download.pytorch.org/whl/cpu` (avoids multi-GB CUDA wheels; the app runs fine on CPU)
-  - Multi-stage build with uv: runtime gets only the compiled `.venv` + app code; `UV_COMPILE_BYTECODE=1`, `--no-cache-dir`, `rm -rf /root/.cache` so caches never cross stages
+- Replace `sentence-transformers` + `torch` with `fastembed` (ONNX Runtime) — the app runs on CPU and only needs 384-dim text embeddings from `all-MiniLM-L6-v2`; the swap removes ~1GB of torch/scipy/transformers and drops the pytorch-cpu index pin from `pyproject.toml`
+  - Multi-stage build with uv: runtime gets only the compiled `.venv` + app code; `--no-cache-dir`, `rm -rf /root/.cache`, `find ... -delete` for `*.pyi` / `__pycache__`, and `strip --strip-unneeded` on `*.so` (excluding bundled `*.libs` to avoid breaking numpy's page-aligned OpenBLAS) so caches and debug symbols never cross stages
   - `python:3.11-slim` base; keep `faiss-cpu`, single model (`all-MiniLM-L6-v2`), stdlib urllib healthcheck
-- Do not modify `app.py` or `src/` — DB logging and index paths are already graceful and portable
+- `app.py` and `src/` are only touched where the embedding backend swaps (`src/ingest.py`, `src/search.py`); DB logging and index paths are already graceful and portable
 - Rename `docker-compose.yml` → `docker-compose.yaml` (compose auto-detects both names)
 
 ---

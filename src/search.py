@@ -5,7 +5,7 @@ import pickle
 import duckdb
 import faiss
 import numpy as np
-from sentence_transformers import SentenceTransformer
+from fastembed import TextEmbedding
 
 from src.ingest import (
     DEFAULT_BM25_PATH,
@@ -22,7 +22,7 @@ _model = None
 def _get_model():
     global _model
     if _model is None:
-        _model = SentenceTransformer(MODEL_NAME)
+        _model = TextEmbedding(model_name=MODEL_NAME)
     return _model
 
 
@@ -51,8 +51,8 @@ def search(query, k=5, rrf_k=60, cat_weight=0, bm25_path=None, faiss_path=None, 
     bm25_top_k = np.argsort(bm25_scores)[::-1][:k]
 
     model = _get_model()
-    query_emb = model.encode([query], show_progress_bar=False)
-    query_emb = _normalize(np.array(query_emb, dtype=np.float32))
+    query_emb = np.array(list(model.embed([query])), dtype=np.float32)
+    query_emb = _normalize(query_emb)
     faiss_scores, faiss_top_k = index.search(query_emb, k)
     faiss_top_k = faiss_top_k[0]
 

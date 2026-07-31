@@ -5,8 +5,8 @@ import re
 
 import faiss
 import numpy as np
+from fastembed import TextEmbedding
 from rank_bm25 import BM25Okapi
-from sentence_transformers import SentenceTransformer
 
 from src.faqs import load_faqs
 
@@ -51,9 +51,9 @@ def build_indexes(faqs=None, bm25_path=None, faiss_path=None, docs_path=None, fo
 
     bm25 = BM25Okapi(tokenized, k1=k1, b=b)
 
-    model = SentenceTransformer(MODEL_NAME)
-    embeddings = model.encode(docs, show_progress_bar=False)
-    embeddings = _normalize(np.array(embeddings, dtype=np.float32))
+    model = TextEmbedding(model_name=MODEL_NAME)
+    embeddings = np.array(list(model.embed(docs)), dtype=np.float32)
+    embeddings = _normalize(embeddings)
 
     index = faiss.IndexFlatIP(EMBEDDING_DIM)
     index.add(embeddings)
