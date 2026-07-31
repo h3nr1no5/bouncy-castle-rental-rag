@@ -438,9 +438,51 @@ Browser verification (via Chrome DevTools MCP):
 
 ## 13. Docker Compose packaging
 
-Goal: Package the app, Postgres, and Grafana so everything starts with `docker compose up`.
+Goal: Package the app, Postgres, and Grafana so everything starts with `docker compose up`, with a container that is portable across hosts (`$PORT`, env-only config, graceful DB fallback) and small enough for free-tier clouds (target ~512MB).
 
 Description: Write a `Dockerfile` for the FastAPI app (served via uvicorn), a `docker-compose.yaml` that defines `app`, `postgres`, and `grafana` services with proper environment variables, volume mounts, and network config. Add a `.env.example` file.
+
+### Acceptance criteria
+
+Dockerfile (config assertions in `tests/test_docker.py`, no Docker daemon required):
+
+- [ ] Multi-stage `Dockerfile` builds with `uv sync --frozen --no-dev` so the runtime image contains only the compiled `.venv` and app code, not the package manager or build caches
+- [ ] Torch is installed CPU-only from `https://download.pytorch.org/whl/cpu` (not the default CUDA build) — this is the dominant size lever (~200MB vs ~800MB+) and keeps the image near the ~512MB free-tier target
+- [ ] Runtime image is `python:3.11-slim`-based, runs as a non-root `app` user (uid 1000), and sets `PYTHONUNBUFFERED=1` / `PYTHONDONTWRITEBYTECODE=1`
+- [ ] App serves via `uvicorn app:app` on `0.0.0.0` on port `$PORT` (default `8000`) so the same image runs on any host that injects `PORT`
+- [ ] Indexes are built at container startup when `db/` files are missing: `docker-entrypoint.sh` calls `src.ingest.build_indexes()` if any of `bm25_index.pkl` / `faiss_index.bin` / `ingest_docs.json` is absent, then `exec`s uvicorn
+- [ ] `HEALTHCHECK` hits `GET /health` using stdlib `urllib` (no curl in slim) with a long `--start-period` for first-run model download
+- [ ] `.dockerignore` excludes `.env`, `db/`, `.venv`, `.git`, tests, and docs so no secrets or local indexes leak into the image
+
+docker-compose.yaml:
+
+- [ ] `docker-compose.yaml` (renamed from `docker-compose.yml`) defines `app`, `postgres`, and `grafana` services on a shared network
+- [ ] `app`: builds from `.`, exposes `${APP_PORT:-8000}:8000`, gets `GROQ_API_KEY` / `OPENAI_API_KEY` from `.env`, sets `DATABASE_URL` to the `postgres` host, mounts a named `appdb` volume on `/app/db` for persisted indexes, `depends_on: [postgres]`, `restart: unless-stopped`
+- [ ] `postgres`: `postgres:16` with `POSTGRES_USER/PASSWORD/DATABASE=rag_logs` matching the Grafana datasource, `pgdata` volume, port `5432`
+- [ ] `grafana`: mounts `grafana/provisioning` → `/etc/grafana/provisioning` and `grafana/dashboard.json` → `/var/lib/grafana/dashboards/dashboard.json` read-only, admin credentials via `GF_SECURITY_ADMIN_USER` / `GF_SECURITY_ADMIN_PASSWORD`, `depends_on: [postgres]`, port `3000`
+- [ ] Named volumes declared (`pgdata`, `appdb`); `.env.example` lists `GROQ_API_KEY`, `OPENAI_API_KEY`, `DATABASE_URL`, `GRAFANA_ADMIN_USER`, `GRAFANA_ADMIN_PASSWORD`
+
+Verification:
+
+- [ ] `tests/test_docker.py` passes under `uv run pytest` (config-level assertions on the Dockerfile, compose YAML, `.env.example`, and entrypoint)
+- [ ] `docker compose config` parses cleanly; `docker compose up --build -d` starts all three services; `/health` returns 200, a chat round-trip works, and Grafana loads at `:3000`
+- [ ] Image size reported via `docker images` and noted against the ~512MB free-tier target
+
+### Out of scope
+
+- Individual service implementation
+- CI/CD pipelines or deploy tooling (Render blueprint, Fly.io config, etc.) — just a portable image + compose
+- README documentation — Task 14 (#14)
+
+### Constraints
+
+- Use Docker Compose
+- No new Python dependencies — shrinking is via image/layer choices only:
+  - CPU-only torch from `https://download.pytorch.org/whl/cpu` (avoids multi-GB CUDA wheels; the app runs fine on CPU)
+  - Multi-stage build with uv: runtime gets only the compiled `.venv` + app code; `UV_COMPILE_BYTECODE=1`, `--no-cache-dir`, `rm -rf /root/.cache` so caches never cross stages
+  - `python:3.11-slim` base; keep `faiss-cpu`, single model (`all-MiniLM-L6-v2`), stdlib urllib healthcheck
+- Do not modify `app.py` or `src/` — DB logging and index paths are already graceful and portable
+- Rename `docker-compose.yml` → `docker-compose.yaml` (compose auto-detects both names)
 
 ---
 
