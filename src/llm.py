@@ -11,6 +11,9 @@ DEFAULT_OPENAI_MODEL = "gpt-5.4-mini"
 GROQ_RPM_LIMIT = 25
 GROQ_RPD_LIMIT = 900
 
+LLM_TIMEOUT = 30
+LLM_MAX_RETRIES = 2
+
 MODEL_PRICING = {
     "llama-3.3-70b-versatile": {"input": 0.59 / 1_000_000, "output": 0.79 / 1_000_000},
     "gpt-5.4-mini": {"input": 0.75 / 1_000_000, "output": 4.50 / 1_000_000},
@@ -74,7 +77,11 @@ def ask_llm(
     if groq_key:
         try:
             _enforce_groq_rate_limits()
-            client = Groq(api_key=groq_key)
+            client = Groq(
+                api_key=groq_key,
+                timeout=LLM_TIMEOUT,
+                max_retries=LLM_MAX_RETRIES,
+            )
             response = client.chat.completions.create(
                 model=groq_model,
                 messages=messages,
@@ -87,7 +94,11 @@ def ask_llm(
         raise ValueError("OPENAI_API_KEY environment variable is not set")
 
     try:
-        client = _OpenAI(api_key=openai_key)
+        client = _OpenAI(
+            api_key=openai_key,
+            timeout=LLM_TIMEOUT,
+            max_retries=LLM_MAX_RETRIES,
+        )
         response = client.chat.completions.create(
             model=openai_model,
             messages=messages,

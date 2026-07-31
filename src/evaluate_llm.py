@@ -3,6 +3,8 @@ import os
 import random
 import re
 
+from tqdm import tqdm
+
 from src.evaluate import load_ground_truth
 from src.llm import ask_llm, DEFAULT_OPENAI_MODEL
 from src.rag import answer_question
@@ -56,7 +58,7 @@ def evaluate_relevance(
 
     scores = []
 
-    for item in items:
+    for item in tqdm(items, desc="Evaluating"):
         question = item["question"]
         doc_id = item["document_id"]
 

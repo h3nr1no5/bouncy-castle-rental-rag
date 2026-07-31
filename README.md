@@ -48,3 +48,21 @@ uv run python generate_ground_truth.py
 ```
 
 Requires `OPENAI_API_KEY` in `.env`. Optional — the RAG pipeline works without it.
+
+### Chat UI (FastAPI)
+
+Run the FastAPI chat backend, which serves the static UI in `ui/`:
+
+```bash
+docker compose up -d postgres  # Postgres for feedback logging (optional)
+uv run uvicorn app:app --reload --port 8000
+```
+
+Then open http://localhost:8000.
+
+- `POST /api/chat` runs `answer_question()` and returns the answer with metadata and an `interaction_id`
+- `POST /api/feedback` persists thumbs up/down for an `interaction_id`
+- `GET /health` returns 200
+- CORS is enabled so the API can be called from a website
+
+Requires the search indexes (`db/bm25_index.pkl`, `db/faiss_index.bin`, `db/ingest_docs.json`); build them with `build_indexes()` in `src/ingest.py` if they are missing. Chat also needs `GROQ_API_KEY` (and optionally `OPENAI_API_KEY`) in `.env`.

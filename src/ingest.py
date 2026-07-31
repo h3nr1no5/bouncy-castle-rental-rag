@@ -10,10 +10,10 @@ from sentence_transformers import SentenceTransformer
 
 from src.faqs import load_faqs
 
-DEFAULT_DATA_DIR = pathlib.Path(__file__).resolve().parents[1] / "data"
-DEFAULT_BM25_PATH = DEFAULT_DATA_DIR / "bm25_index.pkl"
-DEFAULT_FAISS_PATH = DEFAULT_DATA_DIR / "faiss_index.bin"
-DEFAULT_DOCS_PATH = DEFAULT_DATA_DIR / "ingest_docs.json"
+DEFAULT_DB_DIR = pathlib.Path(__file__).resolve().parents[1] / "db"
+DEFAULT_BM25_PATH = DEFAULT_DB_DIR / "bm25_index.pkl"
+DEFAULT_FAISS_PATH = DEFAULT_DB_DIR / "faiss_index.bin"
+DEFAULT_DOCS_PATH = DEFAULT_DB_DIR / "ingest_docs.json"
 
 MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 EMBEDDING_DIM = 384

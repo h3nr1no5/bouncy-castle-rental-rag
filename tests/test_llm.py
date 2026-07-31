@@ -7,6 +7,8 @@ import pytest
 from src.llm import (
     GROQ_RPD_LIMIT,
     GROQ_RPM_LIMIT,
+    LLM_MAX_RETRIES,
+    LLM_TIMEOUT,
     _enforce_groq_rate_limits,
     _groq_timestamps_day,
     _groq_timestamps_minute,
@@ -142,6 +144,36 @@ class TestBothFail:
             mock_openai_cls.return_value.chat.completions.create.side_effect = Exception("OpenAI error")
             with pytest.raises(RuntimeError, match="Both Groq and OpenAI failed"):
                 ask_llm("sys", "msg")
+
+
+class TestClientTimeout:
+    def test_groq_client_constructed_with_timeout_and_max_retries(self):
+        fake = _make_mock_completion("ok")
+        with (
+            patch.dict(os.environ, {"GROQ_API_KEY": "g-key"}, clear=True),
+            patch("src.llm.Groq") as mock_groq_cls,
+        ):
+            mock_groq_cls.return_value.chat.completions.create.return_value = fake
+            ask_llm("sys", "msg")
+
+        kwargs = mock_groq_cls.call_args.kwargs
+        assert kwargs["timeout"] == LLM_TIMEOUT
+        assert kwargs["max_retries"] == LLM_MAX_RETRIES
+
+    def test_openai_client_constructed_with_timeout_and_max_retries(self):
+        fake = _make_mock_completion("ok")
+        with (
+            patch.dict(os.environ, {"GROQ_API_KEY": "g-key", "OPENAI_API_KEY": "o-key"}, clear=True),
+            patch("src.llm.Groq") as mock_groq_cls,
+            patch("src.llm._OpenAI") as mock_openai_cls,
+        ):
+            mock_groq_cls.return_value.chat.completions.create.side_effect = Exception("Groq down")
+            mock_openai_cls.return_value.chat.completions.create.return_value = fake
+            ask_llm("sys", "msg")
+
+        kwargs = mock_openai_cls.call_args.kwargs
+        assert kwargs["timeout"] == LLM_TIMEOUT
+        assert kwargs["max_retries"] == LLM_MAX_RETRIES
 
 
 class TestGroqRateLimiter:
