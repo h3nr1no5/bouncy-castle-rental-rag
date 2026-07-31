@@ -102,3 +102,40 @@ Useful commands:
 - Stop/remove the container: `docker stop grafana-issue12 && docker rm grafana-issue12`
 - Re-apply provisioning file changes: Grafana reloads provisioned dashboards automatically (every 10s); datasource changes need a container restart
 - Delete all demo rows: `psql postgres://postgres:postgres@localhost:5432/rag_logs -c "DELETE FROM rag_logs"`
+
+### Deploy to Render (app + Postgres + Grafana)
+
+The whole stack deploys to Render from a single [`render.yaml`](render.yaml) Blueprint: the app web service (builds the root `Dockerfile`), a second web service running Grafana (builds [`grafana/Dockerfile`](grafana/Dockerfile)), and a managed Postgres from [Neon](https://neon.tech) (free tier). There is no Docker Compose on Render — the image is fully env-configured.
+
+**Deployed app:** `https://<your-app>.onrender.com` (auto-assigned when you create the Blueprint).
+**Deployed Grafana:** `https://<your-grafana>.onrender.com` (admin/`GF_SECURITY_ADMIN_PASSWORD`).
+
+**One-click deploy:** push this repo to GitHub, open the Render Dashboard → **New → Blueprint**, select the repo, and Render creates both services from `render.yaml`.
+
+The Blueprint uses `sync: false` secrets, so the following env vars are **not** committed — fill them in on the Render service dashboard after the first deploy:
+
+| Service | Env var | Value |
+|---|---|---|
+| App | `GROQ_API_KEY` | your Groq API key |
+| App | `DATABASE_URL` | your Neon connection string, e.g. `postgres://user:password@ep-xxx.us-east-2.aws.neon.tech:5432/neondb?sslmode=require` |
+| Grafana | `GF_SECURITY_ADMIN_PASSWORD` | Grafana admin password |
+| Grafana | `POSTGRES_HOST` | Neon host, e.g. `ep-xxx.us-east-2.aws.neon.tech` |
+| Grafana | `POSTGRES_USER` | Neon database user |
+| Grafana | `POSTGRES_PASSWORD` | Neon database password |
+
+Non-secret values come from the Blueprint itself: the app runs on `PORT=8000`, Grafana on `PORT=3000`/`GF_SERVER_HTTP_PORT=3000`, `POSTGRES_DB=neondb`, `POSTGRES_PORT=5432`, `POSTGRES_SSLMODE=require`, and the Grafana datasource reads every connection field from these `POSTGRES_*` env vars (Grafana `$VAR` interpolation in `grafana/provisioning/datasources/postgres.yml`). `OPENAI_API_KEY` is deliberately **not** set in the cloud — chat uses Groq only.
+
+**Indexes are pre-baked at build time.** `render.yaml` has no `/app/db` volume, so the `Dockerfile` runs `build_indexes()` during the image build (warming the fastembed ONNX model into `/app/.cache`). Deploys and restarts start in seconds with no runtime model download. The `docker-entrypoint.sh` rebuild fallback still runs if the index files are ever missing.
+
+**Database fallback:** when Neon is unreachable (free-tier scale-to-zero, network blip), the app keeps serving chat — feedback is simply not persisted and `interaction_id` is omitted. `rag_logs` is auto-created on first successful connect (`init_db`). See Task 14.
+
+**Migrating existing local data to Neon** (verify with row-count and `created_at` range parity after):
+
+```bash
+pg_dump "$DATABASE_URL" --no-owner --no-privileges --data-only -t rag_logs > rag_logs.sql
+psql "$DATABASE_URL_CLOUD" -f rag_logs.sql
+psql "$DATABASE_URL" -c "SELECT COUNT(*), MIN(created_at), MAX(created_at) FROM rag_logs"
+psql "$DATABASE_URL_CLOUD" -c "SELECT COUNT(*), MIN(created_at), MAX(created_at) FROM rag_logs"
+```
+
+`DATABASE_URL` is your local Postgres and `DATABASE_URL_CLOUD` your Neon URL (both already in `.env`).

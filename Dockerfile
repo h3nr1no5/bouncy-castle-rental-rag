@@ -21,6 +21,8 @@ FROM python:3.11-slim AS runtime
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PORT=8000 \
+    HF_HOME=/app/.cache \
+    FASTEMBED_CACHE_PATH=/app/.cache/fastembed \
     PATH="/app/.venv/bin:$PATH"
 
 WORKDIR /app
@@ -34,9 +36,11 @@ COPY --chown=app:app ui/ ./ui/
 COPY --chown=app:app data/ ./data/
 COPY --chown=app:app docker-entrypoint.sh ./
 
-RUN mkdir -p /app/db \
+RUN mkdir -p /app/db /app/.cache \
     && chown -R app:app /app \
-    && chmod +x docker-entrypoint.sh
+    && chmod +x docker-entrypoint.sh \
+    && python -c "from src.ingest import build_indexes; build_indexes()" \
+    && chown -R app:app /app/db /app/.cache
 
 USER app
 

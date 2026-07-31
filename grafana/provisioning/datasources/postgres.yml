@@ -4,13 +4,13 @@ datasources:
   - name: PostgreSQL
     uid: postgres
     type: postgres
-    url: postgres:5432
-    database: rag_logs
-    user: postgres
+    url: $POSTGRES_HOST:$POSTGRES_PORT
+    database: $POSTGRES_DB
+    user: $POSTGRES_USER
     secureJsonData:
-      password: postgres
+      password: $POSTGRES_PASSWORD
     jsonData:
-      sslmode: disable
+      sslmode: $POSTGRES_SSLMODE
       postgresVersion: 1600
       timescaledb: false
     isDefault: true

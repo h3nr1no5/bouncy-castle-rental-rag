@@ -96,6 +96,17 @@ class TestDockerfile:
     def test_healthcheck_targets_health_endpoint(self, dockerfile):
         assert "/health" in dockerfile
 
+    def test_prebakes_indexes_at_build_time(self, dockerfile):
+        assert "HF_HOME=/app/.cache" in dockerfile
+        assert "FASTEMBED_CACHE_PATH=/app/.cache/fastembed" in dockerfile
+        assert "build_indexes" in dockerfile
+
+    def test_index_build_happens_before_user_switch(self, dockerfile):
+        lines = dockerfile.splitlines()
+        build_line = next(i for i, line in enumerate(lines) if "build_indexes" in line)
+        user_line = next(i for i, line in enumerate(lines) if line.startswith("USER app"))
+        assert build_line < user_line
+
     def test_entrypoint_is_entry(self, dockerfile):
         entrypoint_line = next(line for line in dockerfile.splitlines() if line.startswith("ENTRYPOINT"))
         assert "docker-entrypoint.sh" in entrypoint_line
@@ -183,6 +194,15 @@ class TestComposeServices:
         assert "GF_SECURITY_ADMIN_USER" in env
         assert "GF_SECURITY_ADMIN_PASSWORD" in env
 
+    def test_grafana_gets_postgres_connection_from_env(self, compose):
+        env = compose["services"]["grafana"]["environment"]
+        assert env["POSTGRES_HOST"] == "postgres"
+        assert env["POSTGRES_PORT"] == 5432
+        assert env["POSTGRES_DB"] == "rag_logs"
+        assert env["POSTGRES_USER"] == "postgres"
+        assert env["POSTGRES_PASSWORD"] == "postgres"
+        assert env["POSTGRES_SSLMODE"] == "disable"
+
     def test_grafana_depends_on_postgres_and_port(self, compose):
         grafana = compose["services"]["grafana"]
         assert "3000:3000" in grafana["ports"]
@@ -200,6 +220,7 @@ class TestEnvExample:
             "GROQ_API_KEY",
             "OPENAI_API_KEY",
             "DATABASE_URL",
+            "DATABASE_URL_CLOUD",
             "GRAFANA_ADMIN_USER",
             "GRAFANA_ADMIN_PASSWORD",
         ):

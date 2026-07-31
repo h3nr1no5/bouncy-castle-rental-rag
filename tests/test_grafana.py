@@ -19,8 +19,9 @@ REQUIRED_PANEL_TITLES = [
 REQUIRED_DATASOURCE_FIELDS = {
     "name": "PostgreSQL",
     "type": "postgres",
-    "url": "postgres:5432",
-    "database": "rag_logs",
+    "url": "$POSTGRES_HOST:$POSTGRES_PORT",
+    "database": "$POSTGRES_DB",
+    "user": "$POSTGRES_USER",
     "isDefault": True,
 }
 
@@ -145,12 +146,15 @@ class TestDatasourceProvisioning:
         for key, expected in REQUIRED_DATASOURCE_FIELDS.items():
             assert datasource.get(key) == expected, f"datasource.{key}"
 
-    def test_datasource_points_to_rag_logs_database(self):
+    def test_datasource_reads_connection_from_env(self):
         path = GRAFANA_DIR / "provisioning" / "datasources" / "postgres.yml"
         data = yaml.safe_load(path.read_text())
         datasource = data["datasources"][0]
-        assert datasource["database"] == "rag_logs"
-        assert datasource["url"] == "postgres:5432"
+        assert datasource["url"] == "$POSTGRES_HOST:$POSTGRES_PORT"
+        assert datasource["database"] == "$POSTGRES_DB"
+        assert datasource["user"] == "$POSTGRES_USER"
+        assert datasource["secureJsonData"]["password"] == "$POSTGRES_PASSWORD"
+        assert datasource["jsonData"]["sslmode"] == "$POSTGRES_SSLMODE"
 
 
 class TestDashboardsProvisioning:
