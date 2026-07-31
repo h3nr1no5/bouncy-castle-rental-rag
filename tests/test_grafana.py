@@ -82,6 +82,11 @@ class TestPanels:
         assert "GROUP BY feedback" in sql
         assert "COUNT(*)" in sql
 
+    def test_feedback_distribution_shows_one_slice_per_category(self, panels):
+        panel = self._panel(panels, "Feedback distribution")
+        reduce = panel["options"]["reduceOptions"]
+        assert reduce["values"] is True
+
     def test_average_latency_averages_metadata_latency(self, panels):
         panel = self._panel(panels, "Average latency over time")
         sql = panel["targets"][0]["rawSql"]

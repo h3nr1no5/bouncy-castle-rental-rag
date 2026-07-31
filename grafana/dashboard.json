@@ -190,7 +190,7 @@
             "lastNotNull"
           ],
           "fields": "",
-          "values": false
+          "values": true
         },
         "tooltip": {
           "mode": "single",
