@@ -387,9 +387,52 @@ Build a FastAPI chat backend with a self-contained static frontend (chat input, 
 
 ## 12. Grafana monitoring dashboard
 
-Goal: Create a Grafana dashboard with at least 5 charts showing recent conversations, feedback, latency, and cost.
+Goal: A Grafana dashboard provisioned from files in `grafana/` that visualises the RAG interactions logged to Postgres (`rag_logs`), with at least 6 panels covering recent conversations, feedback, latency, token usage, estimated cost, and model usage — and whose correctness is verified in a real browser through Chrome DevTools MCP.
 
-Description: Provision a Grafana dashboard config (JSON or YAML) that connects to the Postgres logs table and visualises at least 5 panels: (1) recent interactions table, (2) feedback distribution pie chart, (3) average latency over time, (4) token usage over time, (5) estimated cost over time, plus any additional panels that add insight (e.g. model usage breakdown, queries per time period, or a heatmap of busy hours). Include in `grafana/dashboard.json`.
+### Acceptance criteria
+
+Config (checkable by inspecting files + running pytest):
+
+- [ ] `grafana/dashboard.json` exists, is valid JSON, and is loaded by Grafana via a provisioning dashboards provider with no manual import
+- [ ] `grafana/provisioning/datasources/postgres.yml` provisions a Postgres datasource: name "PostgreSQL", type `postgres`, url `postgres:5432`, database `rag_logs`, `isDefault: true`
+- [ ] `grafana/provisioning/dashboards/dashboards.yml` provisions the dashboard from `grafana/dashboard.json` with `allowUiUpdates` disabled
+- [ ] The dashboard contains at least 6 panels: (1) Recent conversations — table of last 5 rows: question, answer, feedback, model, created_at; (2) Feedback distribution — pie chart counting `up`, `down`, and missing feedback; (3) Average latency over time — timeseries of AVG(`metadata->>'latency'`); (4) Token usage over time — timeseries of SUM(`metadata->'tokens'->>'total'`); (5) Estimated cost over time — timeseries of SUM(`metadata->>'cost'`); (6) Model usage — bar chart counting by `metadata->>'model'`
+- [ ] Every panel reads only from the existing `rag_logs` table, extracts metrics from the JSONB `metadata` column, and filters `created_at` with `$__timeFrom()` / `$__timeTo()`
+- [ ] Panels render an empty state without errors when `rag_logs` has no rows
+- [ ] `tests/test_grafana.py` passes under `uv run pytest`: asserts the dashboard JSON is valid, all 6 required panel titles exist, every panel targets `rag_logs` via the Postgres datasource, and the provisioning YAMLs parse with the correct settings
+
+Browser verification (via Chrome DevTools MCP):
+
+- [ ] With Postgres running, `rag_logs` seeded with known sample rows, and Grafana started from the provisioning files, an agent using the Chrome DevTools MCP tools can:
+  - [ ] navigate to http://localhost:3000 and log in with admin credentials
+  - [ ] confirm the Postgres datasource shows as connected (green)
+  - [ ] open the dashboard and verify each of the 6 panels renders data matching the seeded rows (seeded questions appear in the table; up/down split matches; latency/tokens/cost series are non-empty; model bar shows the seeded models)
+  - [ ] capture a screenshot of the rendered dashboard as evidence
+
+### Out of scope
+
+- Logging/feedback implementation — done in Task 8 (#8)
+- Chat UI — Task 11 (#11)
+- Adding a `grafana` service to `docker-compose.yml` and a `Dockerfile` — Task 13 (#13). Grafana is started ad-hoc (`docker run`) only for verification; compose is not modified here
+- Alerts, notifications, SSO, or auth beyond Grafana defaults
+- Schema changes to `rag_logs` (no new columns — panels must use the existing JSONB `metadata`)
+- Deployment and README — Tasks 13–14 (#13, #14)
+
+### Constraints
+
+- Files confined to `grafana/` (`dashboard.json`, `provisioning/datasources/postgres.yml`, `provisioning/dashboards/dashboards.yml`, `seed_demo.py`) and `tests/test_grafana.py`
+- Provisioning via Grafana provisioning files only — no `init.py` HTTP-API script
+- `feedback` is TEXT (`up`/`down`/NULL); `metadata` is JSONB with keys `provider`, `model`, `tokens.{prompt,completion,total}`, `latency`, `cost` (see `src/db.py`, `src/rag.py`)
+- No new Python dependencies; `uv run pytest` must stay green
+- Do not modify `docker-compose.yml`, `app.py`, or `src/` (shipped by Tasks 8/11)
+
+### Test plan
+
+1. `docker compose up postgres` (existing compose)
+2. Seed `rag_logs` with ~10 deterministic rows (mixed feedback, models, latency/cost/tokens, recent `created_at`) via `uv run python grafana/seed_demo.py`
+3. Start Grafana ad-hoc: `docker run -p 3000:3000` mounting `grafana/provisioning` and `grafana/dashboard.json`
+4. `uv run pytest tests/test_grafana.py` (config assertions)
+5. Agent executes the browser-verification ACs with Chrome DevTools MCP (navigate → login → datasource check → per-panel check → screenshot)
 
 ---
 
