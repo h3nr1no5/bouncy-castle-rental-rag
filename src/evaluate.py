@@ -1,6 +1,8 @@
 import csv
 import pathlib
 
+from tqdm.auto import tqdm
+
 DEFAULT_GROUND_TRUTH_PATH = pathlib.Path(__file__).resolve().parents[1] / "data" / "ground_truth.csv"
 
 
@@ -42,7 +44,7 @@ def evaluate_retrieval(ground_truth=None, k=5, search_fn=None, **kwargs):
     mrrs = []
     details = []
 
-    for item in ground_truth:
+    for item in tqdm(ground_truth, desc="Retrieval"):
         results = search_fn(item["question"], k=k, **kwargs)
         relevant_ids = [item["document_id"]]
         hr = compute_hit_rate(results, relevant_ids, k=k)

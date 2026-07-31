@@ -3,7 +3,7 @@ import os
 import random
 import re
 
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 from src.evaluate import load_ground_truth
 from src.llm import ask_llm, DEFAULT_OPENAI_MODEL
