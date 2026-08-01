@@ -25,7 +25,7 @@ def _format_contexts(contexts):
 
 def answer_question(
     question,
-    k=5,
+    k=None,
     bm25_path=None,
     faiss_path=None,
     docs_path=None,

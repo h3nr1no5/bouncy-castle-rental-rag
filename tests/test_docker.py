@@ -101,6 +101,12 @@ class TestDockerfile:
         assert "FASTEMBED_CACHE_PATH=/app/.cache/fastembed" in dockerfile
         assert "build_indexes" in dockerfile
 
+    def test_copies_tuned_params_into_runtime(self, dockerfile):
+        assert "tuned_params.json" in dockerfile
+        copy_line = next(line for line in dockerfile.splitlines() if "tuned_params.json" in line)
+        assert copy_line.startswith("COPY")
+        assert "--chown=app:app" in copy_line
+
     def test_index_build_happens_before_user_switch(self, dockerfile):
         lines = dockerfile.splitlines()
         build_line = next(i for i, line in enumerate(lines) if "build_indexes" in line)

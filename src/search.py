@@ -7,6 +7,7 @@ import faiss
 import numpy as np
 from fastembed import TextEmbedding
 
+from src.config import load_tuned_params
 from src.ingest import (
     DEFAULT_BM25_PATH,
     DEFAULT_FAISS_PATH,
@@ -43,7 +44,15 @@ def _load_indexes(bm25_path=None, faiss_path=None, docs_path=None):
     return bm25, index, docs
 
 
-def search(query, k=5, rrf_k=60, cat_weight=0, bm25_path=None, faiss_path=None, docs_path=None):
+def search(query, k=None, rrf_k=None, cat_weight=None, bm25_path=None, faiss_path=None, docs_path=None):
+    params = load_tuned_params()
+    if k is None:
+        k = params["k"]
+    if rrf_k is None:
+        rrf_k = params["rrf_k"]
+    if cat_weight is None:
+        cat_weight = params["cat_weight"]
+
     bm25, index, docs = _load_indexes(bm25_path, faiss_path, docs_path)
 
     tokenized_query = _tokenize(query)

@@ -8,6 +8,7 @@ import numpy as np
 from fastembed import TextEmbedding
 from rank_bm25 import BM25Okapi
 
+from src.config import load_tuned_params
 from src.faqs import load_faqs
 
 DEFAULT_DB_DIR = pathlib.Path(__file__).resolve().parents[1] / "db"
@@ -32,7 +33,7 @@ def _normalize(embeddings):
     return embeddings / np.maximum(norms, 1e-12)
 
 
-def build_indexes(faqs=None, bm25_path=None, faiss_path=None, docs_path=None, force=False, k1=1.5, b=0.75):
+def build_indexes(faqs=None, bm25_path=None, faiss_path=None, docs_path=None, force=False, k1=None, b=None):
     if faqs is None:
         faqs = load_faqs()
     if bm25_path is None:
@@ -41,6 +42,12 @@ def build_indexes(faqs=None, bm25_path=None, faiss_path=None, docs_path=None, fo
         faiss_path = DEFAULT_FAISS_PATH
     if docs_path is None:
         docs_path = DEFAULT_DOCS_PATH
+
+    params = load_tuned_params()
+    if k1 is None:
+        k1 = params["bm25_k1"]
+    if b is None:
+        b = params["bm25_b"]
 
     paths_exist = bm25_path.exists() and faiss_path.exists() and docs_path.exists()
     if paths_exist and not force:

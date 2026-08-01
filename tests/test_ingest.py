@@ -1,5 +1,6 @@
 import json
 import pickle
+from pathlib import Path
 
 import faiss
 import numpy as np
@@ -7,6 +8,9 @@ import pytest
 from rank_bm25 import BM25Okapi
 
 from src.ingest import _combine_text, _normalize, _tokenize, build_indexes
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+TUNED_PARAMS_FILE = PROJECT_ROOT / "tuned_params.json"
 
 SAMPLE_FAQS = [
     {"Category": "A", "Question": "q1", "Answer": "a1"},
@@ -98,3 +102,30 @@ def test_faiss_embedding_similarity(tmp_path):
     vecs = index.reconstruct_n(0, index.ntotal)
     norms = np.linalg.norm(vecs, axis=1)
     assert np.allclose(norms, 1.0, atol=1e-5)
+
+
+def test_build_indexes_uses_tuned_k1_b_by_default(tmp_path, monkeypatch):
+    monkeypatch.setattr("src.config.DEFAULT_TUNED_PARAMS_PATH", TUNED_PARAMS_FILE)
+    build_indexes(faqs=SAMPLE_FAQS, bm25_path=tmp_path / "bm25.pkl", faiss_path=tmp_path / "faiss.bin", docs_path=tmp_path / "docs.json")  # fmt: skip
+    with open(tmp_path / "bm25.pkl", "rb") as f:
+        bm25 = pickle.load(f)
+    assert bm25.k1 == 2.0
+    assert bm25.b == 0.75
+
+
+def test_build_indexes_falls_back_to_legacy_k1_when_config_missing(tmp_path, monkeypatch):
+    monkeypatch.setattr("src.config.DEFAULT_TUNED_PARAMS_PATH", tmp_path / "missing.json")
+    build_indexes(faqs=SAMPLE_FAQS, bm25_path=tmp_path / "bm25.pkl", faiss_path=tmp_path / "faiss.bin", docs_path=tmp_path / "docs.json")  # fmt: skip
+    with open(tmp_path / "bm25.pkl", "rb") as f:
+        bm25 = pickle.load(f)
+    assert bm25.k1 == 1.5
+    assert bm25.b == 0.75
+
+
+def test_build_indexes_explicit_k1_b_override_config(tmp_path, monkeypatch):
+    monkeypatch.setattr("src.config.DEFAULT_TUNED_PARAMS_PATH", TUNED_PARAMS_FILE)
+    build_indexes(faqs=SAMPLE_FAQS, bm25_path=tmp_path / "bm25.pkl", faiss_path=tmp_path / "faiss.bin", docs_path=tmp_path / "docs.json", k1=0.5, b=0.5)  # fmt: skip
+    with open(tmp_path / "bm25.pkl", "rb") as f:
+        bm25 = pickle.load(f)
+    assert bm25.k1 == 0.5
+    assert bm25.b == 0.5

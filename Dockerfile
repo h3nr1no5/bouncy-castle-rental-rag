@@ -34,6 +34,7 @@ COPY --chown=app:app app.py pyproject.toml ./
 COPY --chown=app:app src/ ./src/
 COPY --chown=app:app ui/ ./ui/
 COPY --chown=app:app data/ ./data/
+COPY --chown=app:app tuned_params.json ./
 COPY --chown=app:app docker-entrypoint.sh ./
 
 RUN mkdir -p /app/db /app/.cache \

@@ -72,6 +72,17 @@ class TestAnswerQuestion:
         _, kwargs = mock_search.call_args
         assert kwargs.get("k") == 3
 
+    def test_does_not_pass_k_when_default(self):
+        with (
+            patch("src.rag.search", return_value=SAMPLE_CONTEXTS) as mock_search,
+            patch("src.rag.ask_llm", return_value=LLM_RESULT),
+        ):
+            answer_question("booking")
+
+        mock_search.assert_called_once()
+        _, kwargs = mock_search.call_args
+        assert kwargs.get("k") is None
+
     def test_injects_contexts_into_prompt(self):
         with (
             patch("src.rag.search", return_value=SAMPLE_CONTEXTS),
