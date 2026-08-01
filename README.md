@@ -110,7 +110,16 @@ The whole stack deploys to Render from a single [`render.yaml`](render.yaml) Blu
 **Deployed app:** `https://<your-app>.onrender.com` (auto-assigned when you create the Blueprint).
 **Deployed Grafana:** `https://<your-grafana>.onrender.com` (admin/`GF_SECURITY_ADMIN_PASSWORD`).
 
-**One-click deploy:** push this repo to GitHub, open the Render Dashboard → **New → Blueprint**, select the repo, and Render creates both services from `render.yaml`.
+#### Step-by-step deploy
+
+1. **Push this repo to GitHub** (public or private — either works).
+2. **Sign up / log in to Render.** Prefer the GitHub/Google OAuth signup: signups are much faster than email verification, which requires clicking a link in your inbox before you can create anything.
+3. **Add a payment method (required, even for the free tier).** Render now gates *all* resource creation (Blueprints and services alike) behind an account-level card requirement on new accounts — even `plan: free` instances hit a hard "Add Card" modal and API calls return `HTTP 402 Payment Required` until a card is on file. The card is charged $1 temporarily and refunded; no recurring charge on free instances. This gate applies regardless of how you signed up (email or OAuth) and is not mentioned in Render's free-tier docs. Go to **Account → Billing** → **Add Card** before trying to deploy.
+4. **Create the Blueprint:** Render Dashboard → **New → Blueprint**.
+   - If your repo is listed under the GitHub tab, select it.
+   - If it isn't (e.g. the repo belongs to a different GitHub account than the one Render is connected to, which shows a "We weren't able to load your deployment credentials" error), switch to the **Public Git Repository** tab and paste the repo URL (e.g. `https://github.com/<you>/bouncy-castle-rental-rag`).
+5. **On the Blueprint page:** Render parses `render.yaml`, shows both services (`bouncy-castle-rag`, `bouncy-castle-rag-grafana`), and offers to associate already-existing services with the Blueprint. Give the Blueprint a name (e.g. `bouncy-castle-rag`) and click **Deploy Blueprint**.
+6. **Fill in the `sync: false` secrets.** After the first deploy, Render shows the unset secret env vars; paste the values below and redeploy (or set them via the service's **Environment** tab). If you created the app service first via the API, associate it with the Blueprint and the env vars sync over.
 
 The Blueprint uses `sync: false` secrets, so the following env vars are **not** committed — fill them in on the Render service dashboard after the first deploy:
 
@@ -124,6 +133,8 @@ The Blueprint uses `sync: false` secrets, so the following env vars are **not** 
 | Grafana | `POSTGRES_PASSWORD` | Neon database password |
 
 Non-secret values come from the Blueprint itself: the app runs on `PORT=8000`, Grafana on `PORT=3000`/`GF_SERVER_HTTP_PORT=3000`, `POSTGRES_DB=neondb`, `POSTGRES_PORT=5432`, `POSTGRES_SSLMODE=require`, and the Grafana datasource reads every connection field from these `POSTGRES_*` env vars (Grafana `$VAR` interpolation in `grafana/provisioning/datasources/postgres.yml`). `OPENAI_API_KEY` is deliberately **not** set in the cloud — chat uses Groq only.
+
+**Verify the deploy:** `GET https://<your-app>.onrender.com/health` → 200; the UI loads at the root; Grafana renders all 6 panels at `https://<your-grafana>.onrender.com` (datasource fully env-driven via `POSTGRES_*`). Redeploys restart in seconds with cached build layers — confirm the deploy log shows the `build_indexes()` step as cached and no HF Hub download at runtime.
 
 **Indexes are pre-baked at build time.** `render.yaml` has no `/app/db` volume, so the `Dockerfile` runs `build_indexes()` during the image build (warming the fastembed ONNX model into `/app/.cache`). Deploys and restarts start in seconds with no runtime model download. The `docker-entrypoint.sh` rebuild fallback still runs if the index files are ever missing.
 
