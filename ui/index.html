@@ -69,6 +69,26 @@
   .msg.assistant .bubble { background: var(--surface); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
   .msg.error .bubble { background: var(--error-soft); border: 1px solid var(--error); color: var(--error); border-bottom-left-radius: 4px; }
 
+  .msg.assistant .bubble.typing {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 24px;
+  }
+  .msg.assistant .bubble.typing .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: typing-bounce 1.2s infinite ease-in-out;
+  }
+  .msg.assistant .bubble.typing .dot:nth-child(2) { animation-delay: .15s; }
+  .msg.assistant .bubble.typing .dot:nth-child(3) { animation-delay: .3s; }
+  @keyframes typing-bounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: .4; }
+    30% { transform: translateY(-4px); opacity: 1; }
+  }
+
   .meta {
     margin-top: 8px;
     display: flex;
@@ -176,6 +196,31 @@
 
   function scrollToBottom() {
     messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  let typingEl = null;
+
+  function showTypingIndicator() {
+    const wrap = document.createElement("div");
+    wrap.className = "msg assistant";
+    const bubble = document.createElement("div");
+    bubble.className = "bubble typing";
+    for (let i = 0; i < 3; i++) {
+      const dot = document.createElement("span");
+      dot.className = "dot";
+      bubble.appendChild(dot);
+    }
+    wrap.appendChild(bubble);
+    messagesEl.appendChild(wrap);
+    typingEl = wrap;
+    scrollToBottom();
+  }
+
+  function removeTypingIndicator() {
+    if (typingEl) {
+      typingEl.remove();
+      typingEl = null;
+    }
   }
 
   function fmtTokens(tokens) {
@@ -315,6 +360,7 @@
     addMessage("user", question);
     input.value = "";
     setBusy(true);
+    showTypingIndicator();
 
     fetch("/api/chat", {
       method: "POST",
@@ -334,6 +380,7 @@
         renderError({ detail: "Network error: could not reach the server. Please try again." });
       })
       .finally(function () {
+        removeTypingIndicator();
         setBusy(false);
       });
   });
