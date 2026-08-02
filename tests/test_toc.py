@@ -65,6 +65,36 @@ def test_parse_qa_accepts_code_fences():
     assert len(pairs) == 1
 
 
+def test_parse_qa_rejects_malformed_and_invalid():
+    assert _parse_qa("not json at all") == []
+    assert _parse_qa("garbage") == []  # raw reply must not become a record
+    assert _parse_qa('{"pairs":[{"question_hu":"only_one_field"}]}') == []  # ValidationError
+
+
+def test_extract_skips_malformed_reply_and_logs(tmp_path, monkeypatch, caplog):
+    import logging
+
+    import src.extract as ex
+    from src.extract import extract
+
+    def fake_ask_llm(system_prompt, user_message, groq_model=None, openai_model=None):
+        return {
+            "response": "this is not JSON",
+            "model": "x", "provider": "mock", "latency": 0, "cost": 0,
+            "tokens": {"prompt": 0, "completion": 0, "total": 0},
+        }
+
+    monkeypatch.setattr(ex, "ask_llm", fake_ask_llm)
+    chunks = parse_html(HU_FIXTURE, company="C1", max_chunk_chars=50)
+    cache = tmp_path / "extract_cache.json"
+
+    with caplog.at_level(logging.WARNING, logger="src.extract"):
+        out = extract(chunks[:1], toc_dir=tmp_path, cache_path=cache)
+
+    assert out["rows"] == []
+    assert any("SKIP" in r.message for r in caplog.records)
+
+
 # --- collect with mocked http ---
 class _FakeResponse:
     def __init__(self, text="", content_type="text/html; charset=UTF-8"):

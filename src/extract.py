@@ -65,18 +65,7 @@ def _parse_qa(reply):
     try:
         return to_pairs(json.loads(text))
     except (json.JSONDecodeError, ValidationError, TypeError):
-        # single loose record fallback
-        record = {
-            "question_hu": text,
-            "answer_hu": text,
-            "question_en": text,
-            "answer_en": text,
-        }
-        try:
-            QAPair(**record)
-            return [record]
-        except (ValidationError, TypeError):
-            return []
+        return []
 
 
 def _extract_section(section):
