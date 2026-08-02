@@ -134,6 +134,24 @@ The Blueprint uses `sync: false` secrets, so the following env vars are **not** 
 
 Non-secret values come from the Blueprint itself: the app runs on `PORT=8000`, Grafana on `PORT=3000`/`GF_SERVER_HTTP_PORT=3000`, `POSTGRES_DB=neondb`, `POSTGRES_PORT=5432`, `POSTGRES_SSLMODE=require`, and the Grafana datasource reads every connection field from these `POSTGRES_*` env vars (Grafana `$VAR` interpolation in `grafana/provisioning/datasources/postgres.yml`). `OPENAI_API_KEY` is deliberately **not** set in the cloud — chat uses Groq only.
 
+#### LLM provider: Groq primary, OpenAI fallback
+
+`ask_llm()` (`src/llm.py`) resolves the provider from the two API keys it finds in the environment:
+
+- If `GROQ_API_KEY` is **set**, it always tries **Groq first** (with built-in rate-limit enforcement).
+- If that Groq call **fails**, it **falls back to OpenAI** — but only if `OPENAI_API_KEY` is also set.
+- If Groq fails and `OPENAI_API_KEY` is **not** set, the request raises an error (no fallback).
+
+Only one key is *required*, but they play different roles:
+
+| Secret set in Render | Behavior |
+|---|---|
+| `GROQ_API_KEY` only | Uses **Groq only**. No fallback — if Groq errors or hits a rate limit, the request fails. |
+| `OPENAI_API_KEY` only | Uses **OpenAI only** (the Groq path is skipped, since `groq_key` is unset). |
+| Both | **Groq primary**, with **OpenAI as the automatic fallback** on Groq failure. |
+
+On Render, only `GROQ_API_KEY` is configured (`OPENAI_API_KEY` is not in `render.yaml`), so the deployed app uses **Groq only** and has no fallback. If you set only `OPENAI_API_KEY` instead, the app uses OpenAI only. Setting **both** gives you the resilience of an automatic fallback.
+
 **Verify the deploy:** `GET https://<your-app>.onrender.com/health` → 200; the UI loads at the root; Grafana renders all 6 panels at `https://<your-grafana>.onrender.com` (datasource fully env-driven via `POSTGRES_*`). Redeploys restart in seconds with cached build layers — confirm the deploy log shows the `build_indexes()` step as cached and no HF Hub download at runtime.
 
 **Indexes are pre-baked at build time.** `render.yaml` has no `/app/db` volume, so the `Dockerfile` runs `build_indexes()` during the image build (warming the fastembed ONNX model into `/app/.cache`). Deploys and restarts start in seconds with no runtime model download. The `docker-entrypoint.sh` rebuild fallback still runs if the index files are ever missing.
