@@ -51,6 +51,25 @@ def test_parse_deterministic_clause_ref():
     assert a == b
 
 
+def test_clause_ref_unique_across_companies():
+    # Same headings in two different companies must never share a document_id (issue #37).
+    single = parse_html(HU_FIXTURE, company="FixtureCo")
+    assert single[0]["clause_ref"].startswith("fixtureco/")
+    a = parse_html(HU_FIXTURE, company="Alpha")
+    b = parse_html(HU_FIXTURE, company="Beta")
+    refs_a = {r["clause_ref"] for r in a}
+    refs_b = {r["clause_ref"] for r in b}
+    assert refs_a.isdisjoint(refs_b)
+
+
+def test_clause_ref_unique_within_document():
+    # Two sections with the same heading still get distinct refs via the chunk index.
+    html = "<h2>Foglalás</h2><p>x</p><h2>Foglalás</h2><p>y</p>"
+    rows = parse_html(html, company="C1")
+    refs = [r["clause_ref"] for r in rows]
+    assert len(set(refs)) == len(refs)
+
+
 # --- extract / _parse_qa ---
 def test_parse_qa_accepts_valid_json():
     reply = """{"pairs":[{"question_hu":"Kérdés?","answer_hu":"Válasz.","question_en":"Q?","answer_en":"A."}]}"""

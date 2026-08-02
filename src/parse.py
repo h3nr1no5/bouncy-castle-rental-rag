@@ -114,11 +114,14 @@ def parse_html(html, company="unknown", max_chunk_chars=1400):
     if not text:
         return []
     chunks = _split_into_chunks(text, max_chunk_chars=max_chunk_chars)
+    # The clause_ref doubles as the document_id. Prefix with the company so the
+    # same section/heading never collides across companies (issue #37).
+    company_slug = re.sub(r"[^a-z0-9]+", "-", company.lower()).strip("-") or "unknown"
     return [
         {
             "company": company,
             "section": section or "Feltételek",
-            "clause_ref": f"{section or 'feltetelek'}#{i + 1}",
+            "clause_ref": f"{company_slug}/{section or 'feltetelek'}#{i + 1}",
             "clause_text": chunk,
         }
         for i, (section, chunk) in enumerate(chunks)
