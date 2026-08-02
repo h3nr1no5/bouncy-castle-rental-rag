@@ -49,6 +49,32 @@ uv run python generate_ground_truth.py
 
 Requires `OPENAI_API_KEY` in `.env`. Optional — the RAG pipeline works without it.
 
+### Bilingual T&C ingestion pipeline (issue #29)
+
+An offline pipeline that scrapes Hungarian bouncy-castle rental terms & conditions (ÁSZF) pages, splits them into clauses, extracts bilingual (HU + EN) Q&A pairs with an LLM, merges them into the FAQ, and refreshes the search indexes so the bilingual content becomes retrievable.
+
+Data sources live in `data/companies.json` — a list of `{"company": "...", "url": "..."}` entries pointing at each provider's T&C page. Raw HTML is cached under gitignored `db/toc/<company>/source.html`, and extracted pairs are cached in `db/toc/extract_cache.json` (keyed by company, section, and content hash) so re-runs over unchanged sources make **zero** extra LLM calls.
+
+```bash
+cp .env.example .env   # needs GROQ_API_KEY (and optionally OPENAI_API_KEY) for extraction
+uv run python run_toc_pipeline.py
+```
+
+Stage summary printed per run:
+
+1. **collect** (`src/collect.py`) — fetches each `companies.json` URL via `dlt.sources.helpers.requests.Client` (built-in retries / 429 handling, no new dependency), saves UTF-8 raw HTML, skips+logs unreachable/PDF/JS-only sources.
+2. **parse** (`src/parse.py`) — stdlib `html.parser`; splits each page on Hungarian headings (Foglalás, Átvétel, Lemondás, Biztonsági szabályok, Elszámolás, …) into bounded `{company, section, clause_ref, clause_text}` chunks.
+3. **extract** (`src/extract.py`) — one `ask_llm()` call per section, validated against a Pydantic `{question_hu, answer_hu, question_en, answer_en}` schema; retries malformed output then skips+logs; preserves concrete figures; cached in `extract_cache.json`.
+4. **merge** (`src/merge_bilingual.py`) — accent-insensitive dedupe and consensus folding; appends new HU + EN rows to `data/faq.csv` (columns stay `Category,Question,Answer`), leaving existing EN rows and their `faq_{i}` doc ids stable.
+5. **build indexes** (`src/ingest.py` `build_indexes`) — rebuilds `db/bm25_index.pkl`, `db/faiss_index.bin`, `db/ingest_docs.json` over the merged FAQ.
+
+Required `GROQ_API_KEY` (and optionally `OPENAI_API_KEY`) in `.env`. Flags:
+
+- `--skip-llm` — extract only from cache (no new LLM calls; useful for validating the pipeline for free).
+- `--pipeline` — additionally load parsed documents and extracted pairs into `db/faq_ingestion.duckdb` (dataset `toc`) via `src/pipeline.py` `toc_source()` — a pair of dlt resources `documents` and `faq_entries`.
+
+Per-source failures are skipped and logged; the run exits non-zero if every source fails. **Out of scope for #29** (later issues): multilingual embedding/retrieval, bilingual chat, and faithfulness auditing.
+
 ### Chat UI (FastAPI)
 
 Run the FastAPI chat backend, which serves the static UI in `ui/`:

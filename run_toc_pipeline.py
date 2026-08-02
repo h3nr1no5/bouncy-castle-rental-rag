@@ -29,6 +29,9 @@ def _parse(ok_results):
     logger.info("Stage 2/5: parse")
     chunks = []
     for r in ok_results:
+        if not r.get("ok") or not r.get("path"):
+            logger.info("  skip (collect failed): %s", r["company"])
+            continue
         src = pathlib.Path(r["path"])
         html = src.read_text(encoding="utf-8")
         rows = parse_html(html, company=r["company"])

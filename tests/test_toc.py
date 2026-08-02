@@ -133,11 +133,12 @@ def test_merge_upserts_row_and_keeps_existing(tmp_path):
         }
     ]
     added = merge_bilingual(rows, faq_path=faq, dry_run=True)
-    assert len(added) == 1
+    assert len(added) == 2  # EN + HU row per topic
 
     merge_bilingual(rows, faq_path=faq)
     content = faq.read_text(encoding="utf-8")
-    assert "Is a deposit required?" in content
+    assert "Is a deposit required?" in content  # EN row written
+    assert "Ké kemény-e az előleg?" in content  # HU row written
     assert "Existing" in content  # existing untouched
 
 
@@ -149,7 +150,8 @@ def test_merge_knows_existing_topic(tmp_path):
          "question_hu": "Eh?", "answer_hu": "ay", "question_en": "Is a deposit required?", "answer_en": "Yes."}
     ]
     added = merge_bilingual(rows, faq_path=fa, dry_run=True)
-    assert added == []
+    # existing EN topic is deduped; only the new HU companion is appended
+    assert added == [{"Category": "s", "Question": "Eh?", "Answer": "ay"}]
 
 
 # --- pipeline ---

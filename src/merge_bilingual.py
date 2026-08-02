@@ -70,9 +70,11 @@ def _fold_answers(answers_en):
 
 
 def fold_duplicate(faq_rows):
-    """Group extracted rows by accent-insensitive EN topic and fold divergent figures.
+    """Group extracted rows by topic and fold divergent figures.
 
-    Returns list of {Category, Question, Answer} with one row per distinct topic.
+    Returns a list of {Category, Question, Answer} dicts with **two rows per distinct
+    topic** sharing a single Category: an EN row (question_en/answer_en) and a HU row
+    (question_hu/answer_hu).
     """
     groups = {}
     for row in faq_rows:
@@ -86,13 +88,14 @@ def fold_duplicate(faq_rows):
         grp = groups[topic]
         rows = grp["rows"]
         category = _pick_category([r.get("section") for r in rows])
-        question = rows[0].get("question_en") or rows[0].get("question_hu") or ""
+        question_en = rows[0].get("question_en") or rows[0].get("question_hu") or ""
+        question_hu = rows[0].get("question_hu") or rows[0].get("question_en") or ""
         answers_en = [r["answer_en"] for r in rows if r.get("answer_en")]
         answers_hu = [r["answer_hu"] for r in rows if r.get("answer_hu")]
-        answer_en = _fold_answers(answers_en)
-        # note any HU divergence into the EN answer only if it clarifies
-        answer = answer_en or " ".join(answers_hu) or ""
-        out.append({"Category": category, "Question": question, "Answer": answer})
+        answer_en = _fold_answers(answers_en) or " ".join(answers_hu) or ""
+        answer_hu = " ".join(answers_hu) or answer_en
+        out.append({"Category": category, "Question": question_en, "Answer": answer_en})
+        out.append({"Category": category, "Question": question_hu, "Answer": answer_hu})
     return out
 
 
@@ -100,7 +103,7 @@ def merge_bilingual(faq_rows, faq_path=None, dry_run=False):
     """Append newly extracted bilingual rows to data/faq.csv.
 
     Existing rows are never modified/removed (document ids faq_{i} stay stable). A new
-    topic is added as one EN+HU row sharing a single Category, deduped accent-insensitively
+    topic is added as two rows (EN + HU) sharing a single Category, deduped accent-insensitively
     against existing Questions/Answers. Returns the list of appended rows.
     """
     if faq_path is None:

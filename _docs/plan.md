@@ -62,6 +62,20 @@ Inspired by: [fitness-assistant](https://github.com/alexeygrigorev/fitness-assis
 - Basic error handling and logging
 - Sensible defaults so the project is easy to start
 
+### 8. Best-Practice Enhancements
+
+- **Document re-ranking**
+  - Fetch a wider candidate set (e.g. `k=20`) via hybrid search, re-score, keep top-5
+  - Preferred path: LLM reranker via `ask_llm` (no new dependency); cross-encoder only with explicit approval (adds a dependency, no torch in Dockerfile)
+  - Insert either inside `search()` or as a `rerank()` wrapper in the `rag.py` path
+  - Gate: rerun `evaluate_retrieval(k=5)` on `data/ground_truth.csv` — no regression (ideally improvement) on hit-rate@5 / MRR@5
+
+- **User query rewriting**
+  - Add a `rewrite_query()` step at the top of `answer_question()` in `src/rag.py`, before `search()`
+  - Preferred path: one cheap Groq call via `ask_llm` to produce a clean, self-contained search query (no new dependency)
+  - Optional: multi-query expansion (2–3 variants) reusing the existing RRF fusion in `src/search.py`
+  - Gate: rerun `evaluate_retrieval()` on ground truth with a rewritten-query `search_fn`; also sanity-check a few conversational paraphrases
+
 ---
 
 ## Suggested Project Structure (high-level)
