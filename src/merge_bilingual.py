@@ -26,6 +26,21 @@ def _load_csv(path):
         return [dict(r) for r in reader]
 
 
+def _ensure_trailing_newline(path):
+    """Append-mode writes need the existing file to end with a newline, otherwise
+    the first appended row gets glued onto the final existing line."""
+    if not path.exists():
+        return
+    with open(path, "rb") as f:
+        f.seek(0, 2)
+        if f.tell() == 0:
+            return
+        f.seek(-1, 2)
+        if f.read(1) != b"\n":
+            with open(path, "ab") as f:
+                f.write(b"\n")
+
+
 def _existing_question_keys(path):
     keys = set()
     for row in _load_csv(path):
@@ -79,6 +94,28 @@ def _pick_category(sections):
     return max(counts.items(), key=lambda kv: (kv[1], kv[0]))[0]
 
 
+CATEGORY_MAX_LEN = 80
+
+
+def _clean_category(label):
+    """Trim a raw section label to a bounded, presentable Category.
+
+    Extraction sometimes surfaces a whole parsed ``section`` (menu lists, long
+    GDPR clause text) as the Category. Cap it on a word boundary so the column
+    stays a short label instead of a wall of text, with a fallback for long
+    single-token labels.
+    """
+    label = " ".join((label or "").split())
+    if len(label) <= CATEGORY_MAX_LEN:
+        return label or "Terms & Conditions"
+    clipped = label[: CATEGORY_MAX_LEN + 1]
+    head = clipped.rsplit(" ", 1)[0]
+    head = head.rstrip(",;:-")
+    if not head:
+        head = clipped[:CATEGORY_MAX_LEN]
+    return (head + " …").strip()
+
+
 def _fold_answers(answers_en):
     """Fold divergent figures into consensus wording that captures the divergence."""
     if not answers_en:
@@ -103,7 +140,10 @@ def fold_duplicate(faq_rows):
     """
     groups = {}
     for row in faq_rows:
-        q = (row.get("question_en") or row.get("question_hu") or "").strip()
+        # Hungarian is the stable cross-company source key; the same Hungarian
+        # question can surface as differently phrased English translations, so
+        # grouping on the Hungarian question first prevents HU-duplicate rows.
+        q = (row.get("question_hu") or row.get("question_en") or "").strip()
         topic = normalize_accent(q)
         groups.setdefault(topic, {"company": row.get("company"), "rows": []})
         groups[topic]["rows"].append(row)
@@ -112,7 +152,7 @@ def fold_duplicate(faq_rows):
     for topic in sorted(groups):
         grp = groups[topic]
         rows = grp["rows"]
-        category = _pick_category([r.get("section") for r in rows])
+        category = _clean_category(_pick_category([r.get("section") for r in rows]))
         question_en = rows[0].get("question_en") or rows[0].get("question_hu") or ""
         question_hu = rows[0].get("question_hu") or rows[0].get("question_en") or ""
         answers_en = [r["answer_en"] for r in rows if r.get("answer_en")]
@@ -150,6 +190,7 @@ def merge_bilingual(faq_rows, faq_path=None, dry_run=False):
         return new_rows
 
     path.parent.mkdir(parents=True, exist_ok=True)
+    _ensure_trailing_newline(path)
     with open(path, "a", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=REQUIRED_COLUMNS)
         for row in new_rows:
@@ -159,6 +200,48 @@ def merge_bilingual(faq_rows, faq_path=None, dry_run=False):
 
 def load_question_keys(path):
     return _existing_question_keys(path)
+
+
+def merge_en(faq_rows, faq_path=None, dry_run=False):
+    """Append standalone English rows (from the EN track, issue #38) to data/faq.csv.
+
+    Each row carries only ``question_en``/``answer_en`` and becomes a **single** row
+    (no HU companion) tagged with its section as Category. Append-only and deduped
+    accent-insensitively against existing Questions/Answers, matching the conservative
+    policy of :func:`merge_bilingual`. Returns the list of appended rows.
+    """
+    if faq_path is None:
+        faq_path = DEFAULT_FAQ_PATH
+    path = pathlib.Path(faq_path)
+
+    existing_keys = _existing_question_keys(path)
+
+    new_rows = []
+    for row in faq_rows:
+        q = (row.get("question_en") or "").strip()
+        a = (row.get("answer_en") or "").strip()
+        if not q or not a:
+            continue
+        if normalize_accent(q) in existing_keys:
+            continue
+        if normalize_accent(a) in existing_keys:
+            continue
+        category = _clean_category(row.get("section") or "Terms & Conditions")
+        candidate = {"Category": category, "Question": q, "Answer": a}
+        new_rows.append(candidate)
+        existing_keys.add(normalize_accent(q))
+        existing_keys.add(normalize_accent(a))
+
+    if dry_run:
+        return new_rows
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    _ensure_trailing_newline(path)
+    with open(path, "a", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=REQUIRED_COLUMNS)
+        for row in new_rows:
+            writer.writerow({k: row.get(k, "") for k in REQUIRED_COLUMNS})
+    return new_rows
 
 
 def fold_topics(faq_rows):

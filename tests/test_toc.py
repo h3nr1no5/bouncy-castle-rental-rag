@@ -10,6 +10,7 @@ from src.extract import content_hash, _parse_qa
 from src.merge_bilingual import (
     _figure_ranges,
     _fold_answers,
+    fold_topics,
     merge_bilingual,
     normalize_accent,
 )
@@ -238,6 +239,41 @@ def test_fold_answers_keeps_base_when_figures_agree():
 
 def test_fold_answers_single_answer_passthrough():
     assert _fold_answers(["Only answer."]) == "Only answer."
+
+
+def test_fold_groups_by_hungarian_question_not_english_phrasing():
+    # Two companies ask the same question in Hungarian but the extraction
+    # surfaced different English paraphrases. The stable cross-company key is
+    # the Hungarian question, so both rows must fold into ONE topic (one EN +
+    # one HU row), not produce duplicate HU questions.
+    rows = [
+        {"company": "C1", "section": "Fizetés",
+         "question_hu": "Hogyan lehet kifizetni a bérleti díjat?",
+         "answer_hu": "Csak készpénzben.",
+         "question_en": "How can I pay the rental fee?",
+         "answer_en": "Cash only."},
+        {"company": "C2", "section": "Fizetés",
+         "question_hu": "Hogyan lehet kifizetni a bérleti díjat?",
+         "answer_hu": "Készpénz vagy utalás.",
+         "question_en": "How can the rental fee be paid?",
+         "answer_en": "Cash or bank transfer."},
+    ]
+    folded = fold_topics(rows)
+    # exactly two rows (EN + HU), one topic
+    assert len(folded) == 2
+    hu_qs = [
+        r["Question"]
+        for r in folded
+        if normalize_accent(r["Question"]).startswith("hogyan")
+    ]
+    en_qs = [
+        r["Question"]
+        for r in folded
+        if normalize_accent(r["Question"]).startswith("how")
+    ]
+    # the Hungarian question appears exactly once, alongside a single EN row
+    assert len(hu_qs) == 1
+    assert len(en_qs) == 1
     assert _fold_answers([]) == ""
 
 
@@ -358,3 +394,115 @@ def test_extract_uses_cache_and_mocks_llm(tmp_path, monkeypatch):
     out2 = extract(chunks[:1], toc_dir=tmp_path, cache_path=cache)
     assert out2["calls"] == 0
     assert out2["cache_hits"] == 1
+
+
+# --- english track (issue #38) ---
+EN_FIXTURE = """<html><body>
+<h1>Terms and Conditions</h1>
+<h2>Deposit</h2>
+<p>A 20% non-refundable deposit is required to secure your booking.</p>
+<h2>Weather</h2>
+<p>If the weather is unsafe on the day, we will offer a credit note or a free move to another date.</p>
+<h2>Setup</h2>
+<p>Our team sets up and removes the castle; you just provide a clear 3x3 meter space.</p>
+</body></html>
+"""
+
+
+def test_companies_en_json_shape():
+    import json as _json
+    from src.collect import load_companies
+
+    companies = load_companies("data/companies_en.json")
+    assert companies, "companies_en.json must not be empty"
+    for entry in companies:
+        assert isinstance(entry, dict)
+        assert entry["company"]
+        assert entry["url"].startswith("http")
+
+
+def test_extract_en_emits_only_english_and_isolates_cache(tmp_path, monkeypatch):
+    from src.extract import extract_en
+
+    def fake_ask_llm(system_prompt, user_message, groq_model=None, openai_model=None):
+        assert "question_en" in system_prompt
+        return {
+            "response": json.dumps({"pairs": [{"question_en": "Is a deposit required?", "answer_en": "Yes, 20%."}]}),
+            "model": "x", "provider": "mock", "latency": 0, "cost": 0,
+            "tokens": {"prompt": 0, "completion": 0, "total": 0},
+        }
+
+    import src.extract as ex
+    monkeypatch.setattr(ex, "ask_llm", fake_ask_llm)
+
+    chunks = parse_html(EN_FIXTURE, company="E1", max_chunk_chars=50)
+    cache = tmp_path / "extract_cache_en.json"
+    out1 = extract_en(chunks[:1], toc_dir=tmp_path, cache_path=cache)
+    assert out1["calls"] == 1
+    row = out1["rows"][0]
+    assert row["question_en"] == "Is a deposit required?"
+    assert row["answer_en"] == "Yes, 20%."
+    assert "question_hu" not in row
+    assert "answer_hu" not in row
+
+    out2 = extract_en(chunks[:1], toc_dir=tmp_path, cache_path=cache)
+    assert out2["calls"] == 0
+    assert out2["cache_hits"] == 1
+
+
+def test_parse_qa_en_model():
+    from src.extract import ENQAPair, _parse_qa
+
+    parsed = _parse_qa('{"pairs":[{"question_en":"Q","answer_en":"A"}]}', model=ENQAPair)
+    assert parsed == [{"question_en": "Q", "answer_en": "A"}]
+
+
+def test_merge_en_appends_single_standalone_rows(tmp_path):
+    from src.merge_bilingual import merge_en
+
+    faq = tmp_path / "faq.csv"
+    faq.write_text("Category,Question,Answer\nExisting,Preexisting question?,Existing answer.\n", encoding="utf-8")
+
+    rows = [
+        {"company": "E1", "section": "Deposit", "clause_ref": "E1/deposit#1",
+         "question_en": "Is a deposit required?", "answer_en": "Yes, 20%."},
+    ]
+    added = merge_en(rows, faq_path=faq, dry_run=True)
+    # one standalone row (no HU companion), tagged with the section as Category
+    assert added == [{"Category": "Deposit", "Question": "Is a deposit required?", "Answer": "Yes, 20%."}]
+
+    merge_en(rows, faq_path=faq)
+    content = faq.read_text(encoding="utf-8")
+    assert "Is a deposit required?" in content
+    assert "Existing" in content  # existing untouched
+
+    # rerun: no duplicates appended
+    assert merge_en(rows, faq_path=faq, dry_run=True) == []
+
+
+def test_merge_en_skips_hu_translation():
+    from src.merge_bilingual import merge_en
+
+    rows = [
+        {"company": "E1", "section": "Deposit", "clause_ref": "E1/deposit#1",
+         "question_en": "Is a deposit required?", "answer_en": "Yes."},
+    ]
+    out = merge_en(rows, faq_path=None, dry_run=True)
+    assert out == [{"Category": "Deposit", "Question": "Is a deposit required?", "Answer": "Yes."}]
+
+
+def test_cached_only_en_reads_en_cache_path(tmp_path):
+    import run_toc_pipeline as rtp
+
+    from src.extract import content_hash
+
+    cache = tmp_path / "extract_cache.json"
+    cache.write_text(
+        json.dumps({"E1::Deposit::" + content_hash("x"): [{"question_en": "Is a deposit required?", "answer_en": "Yes."}]}),
+        encoding="utf-8",
+    )
+    chunk = {"company": "E1", "section": "Deposit", "clause_ref": "1", "clause_text": "x"}
+    rows = rtp._cached_only_en([chunk], toc_dir=tmp_path)
+    assert rows == [
+        {"company": "E1", "section": "Deposit", "clause_ref": "1", "question_en": "Is a deposit required?", "answer_en": "Yes."}
+    ]
