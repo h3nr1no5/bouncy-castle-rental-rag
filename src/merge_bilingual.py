@@ -42,6 +42,32 @@ def _money_values(text):
     return [int(m) for m in re.findall(r"\d{2,5}\s*(?:Ft|HUF|EUR|€)", text)]
 
 
+def _figure_spans(text):
+    """Yield (value, unit) tokens for percentages and money amounts in ``text``."""
+    for m in re.finditer(r"(\d{1,4})\s*(%)|(\d{2,5})\s*(Ft|HUF|EUR|€)", text):
+        value = m.group(1) or m.group(3)
+        unit = m.group(2) or m.group(4)
+        yield int(value), unit
+
+
+def _figure_ranges(answers):
+    """Return e.g. ``["10% to 50%", "50Ft to 500Ft"]`` for units that diverge.
+
+    A unit recurs across the folded answers but is *not* constant, so its spread
+    (the very thing a single-company answer would hide) is expressed explicitly.
+    """
+    by_unit = {}
+    for ans in answers:
+        for value, unit in _figure_spans(ans):
+            by_unit.setdefault(unit, []).append(value)
+    spans = []
+    for unit in sorted(by_unit):
+        values = sorted(by_unit[unit])
+        if values and values[0] != values[-1]:
+            spans.append(f"{values[0]}{unit} to {values[-1]}{unit}")
+    return spans
+
+
 def _pick_category(sections):
     counts = {}
     for s in sections:
@@ -54,19 +80,18 @@ def _pick_category(sections):
 
 
 def _fold_answers(answers_en):
-    """Fold divergent figures into consensus wording while keeping the first answer as base."""
+    """Fold divergent figures into consensus wording that captures the divergence."""
     if not answers_en:
         return ""
     if len(answers_en) == 1:
         return answers_en[0]
-    all_figures = set()
-    for a in answers_en:
-        all_figures.update(_money_values(a))
-    if len(all_figures) <= 1:
+    spans = _figure_ranges(answers_en)
+    if not spans:
+        # figures agree across companies (or there are none) — keep the base answer
         return answers_en[0]
-    # eligible consensus sentence: keep the most complete answer, note the spread
     base = max(answers_en, key=len)
-    return base.strip()
+    spread = " and ".join(spans)
+    return f"{base.strip()} (figures vary across companies: {spread})"
 
 
 def fold_duplicate(faq_rows):

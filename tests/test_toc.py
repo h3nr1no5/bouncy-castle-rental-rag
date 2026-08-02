@@ -8,6 +8,8 @@ import pytest
 from src.collect import collect, fetch_source
 from src.extract import content_hash, _parse_qa
 from src.merge_bilingual import (
+    _figure_ranges,
+    _fold_answers,
     merge_bilingual,
     normalize_accent,
 )
@@ -152,6 +154,42 @@ def test_merge_knows_existing_topic(tmp_path):
     added = merge_bilingual(rows, faq_path=fa, dry_run=True)
     # existing EN topic is deduped; only the new HU companion is appended
     assert added == [{"Category": "s", "Question": "Eh?", "Answer": "ay"}]
+
+
+# --- divergent figure folding (issue #34) ---
+def test_figure_ranges_detects_percent_and_money_spread():
+    answers = [
+        "Deposit is 10% of the total.",
+        "Deposit is 50% of the total.",
+        "Deposit is 10000Ft upfront.",
+    ]
+    spans = _figure_ranges(answers)
+    assert "10% to 50%" in spans
+    assert "10000Ft to 10000Ft" not in spans  # money agrees, so not divergent
+
+
+def test_fold_answers_captures_divergence_in_consensus_wording():
+    answers = [
+        "A 10% deposit is required.",
+        "A non-refundable 50% deposit secures your date.",
+        "Most companies hold a 30% deposit.",
+    ]
+    folded = _fold_answers(answers)
+    assert "figures vary across companies" in folded
+    assert "10% to 30%" in folded or "10% to 50%" in folded
+
+
+def test_fold_answers_keeps_base_when_figures_agree():
+    answers = [
+        "A 10% deposit is required.",
+        "A 10% deposit secures your date.",
+    ]
+    assert _fold_answers(answers) == answers[0]
+
+
+def test_fold_answers_single_answer_passthrough():
+    assert _fold_answers(["Only answer."]) == "Only answer."
+    assert _fold_answers([]) == ""
 
 
 # --- pipeline ---
