@@ -24,6 +24,7 @@ def _collect():
 
 
 def _parse(ok_results):
+    from src.extract import content_hash
     from src.parse import parse_html
 
     logger.info("Stage 2/5: parse")
@@ -35,6 +36,10 @@ def _parse(ok_results):
         src = pathlib.Path(r["path"])
         html = src.read_text(encoding="utf-8")
         rows = parse_html(html, company=r["company"])
+        source_hash = content_hash(html)
+        for row in rows:
+            row["url"] = r.get("url", f"db/toc/{r['company']}/source.html")
+            row["content_hash"] = source_hash
         chunks.extend(rows)
         logger.info("  %s -> %d chunks", r["company"], len(rows))
     return chunks
@@ -125,16 +130,16 @@ def _load_into_dlt(chunks, faq_rows):
     from src.pipeline import run_toc_pipeline
 
     now = datetime.datetime.now()
-    # one document record per company+url (derive url from source path parent)
+    # one document record per company+url (url and content_hash carried from collect/parse)
     documents = {}
     for c in chunks:
         key = c["company"]
         if key not in documents:
             documents[key] = {
                 "company": key,
-                "url": f"db/toc/{key}/source.html",
+                "url": c.get("url", f"db/toc/{key}/source.html"),
                 "fetched_at": now,
-                "content_hash": c.get("clause_ref", ""),
+                "content_hash": c.get("content_hash", ""),
                 "lang": "hu",
             }
     faq_entries = [

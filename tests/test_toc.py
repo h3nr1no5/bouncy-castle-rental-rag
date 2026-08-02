@@ -259,6 +259,61 @@ def test_content_hash_stable_and_deterministic():
     assert content_hash("abc") != content_hash("abd")
 
 
+# --- provenance carried through the pipeline (#36) ---
+def test_collect_records_source_url(tmp_path):
+    client = _FakeClient({"https://x.hu/aszf": _FakeResponse("<p>magyar szöveg</p>" * 20)})
+    out = collect(
+        companies=[{"company": "C1", "url": "https://x.hu/aszf"}],
+        toc_dir=tmp_path,
+        client=client,
+    )
+    assert out[0]["url"] == "https://x.hu/aszf"
+
+
+def test_parse_carries_url_and_content_hash(tmp_path):
+    from run_toc_pipeline import _parse
+
+    src_file = tmp_path / "source.html"
+    src_file.write_text(HU_FIXTURE, encoding="utf-8")
+    r = [{"company": "C1", "ok": True, "path": str(src_file), "url": "https://x.hu/aszf"}]
+    chunks = _parse(r)
+    assert chunks
+    for c in chunks:
+        assert c["url"] == "https://x.hu/aszf"
+        assert c["content_hash"] == content_hash(HU_FIXTURE)
+
+
+def test_load_into_dlt_uses_real_url_and_source_hash(monkeypatch):
+    import run_toc_pipeline as rtp
+
+    captured = {}
+    fake_pipeline = mock.Mock()
+    fake_info = mock.Mock()
+
+    def fake_run_toc_pipeline(documents, faq_entries):
+        captured["documents"] = documents
+        captured["faq_entries"] = faq_entries
+        return fake_pipeline, fake_info
+
+    monkeypatch.setattr("src.pipeline.run_toc_pipeline", fake_run_toc_pipeline)
+
+    chunks = parse_html(HU_FIXTURE, company="C1")
+    for c in chunks:
+        c["url"] = "https://x.hu/aszf"
+        c["content_hash"] = content_hash(HU_FIXTURE)
+    faq_rows = [
+        {"clause_ref": "Foglalás#1", "company": "C1", "question_hu": "h",
+         "answer_hu": "a", "question_en": "e", "answer_en": "a"}
+    ]
+
+    rtp._load_into_dlt(chunks, faq_rows)
+
+    doc = captured["documents"][0]
+    assert doc["url"] == "https://x.hu/aszf"
+    assert doc["content_hash"] == content_hash(HU_FIXTURE)
+    assert doc["content_hash"] != "Foglalás#1"  # must not be the clause_ref
+
+
 # --- end-to-end with mocked llm ---
 def test_extract_uses_cache_and_mocks_llm(tmp_path, monkeypatch):
     from src.extract import extract

@@ -68,11 +68,11 @@ def collect(companies=None, toc_dir=None, companies_path=None, client=None):
             html = fetch_source(client, entry)
         except Exception as e:
             logger.warning("SKIP %s: %s", company, e)
-            results.append({"company": company, "ok": False, "error": str(e), "path": None})
+            results.append({"company": company, "url": url, "ok": False, "error": str(e), "path": None})
             continue
         out_path = out_dir / "source.html"
         out_path.write_text(html, encoding="utf-8")
-        results.append({"company": company, "ok": True, "error": None, "path": str(out_path)})
+        results.append({"company": company, "url": url, "ok": True, "error": None, "path": str(out_path)})
     return results
 
 
