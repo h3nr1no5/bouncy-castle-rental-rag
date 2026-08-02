@@ -62,7 +62,6 @@ class TestRenderBlueprint:
         grafana = _service(render, "bouncy-castle-rag-grafana")
         env = {e["key"]: e for e in grafana["envVars"]}
         assert env["PORT"]["value"] == 3000
-        assert env["GF_SERVER_HTTP_PORT"]["value"] == 3000
 
     def test_grafana_admin_password_is_sync_false(self, render):
         grafana = _service(render, "bouncy-castle-rag-grafana")

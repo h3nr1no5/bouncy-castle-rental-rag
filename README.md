@@ -132,7 +132,7 @@ The Blueprint uses `sync: false` secrets, so the following env vars are **not** 
 | Grafana | `GF_SECURITY_ADMIN_PASSWORD` | Grafana admin password |
 | Grafana | `DATABASE_URL` | the same Neon connection string as the App, e.g. `postgres://user:password@ep-xxx.us-east-2.aws.neon.tech:5432/neondb?sslmode=require` |
 
-Non-secret values come from the Blueprint itself: the app runs on `PORT=8000`, Grafana on `PORT=3000`/`GF_SERVER_HTTP_PORT=3000`. The Grafana entrypoint wrapper (`grafana/docker-entrypoint.sh`) parses the service's `DATABASE_URL` into `POSTGRES_HOST`/`POSTGRES_PORT`/`POSTGRES_DB`/`POSTGRES_USER`/`POSTGRES_PASSWORD`/`POSTGRES_SSLMODE` before Grafana starts, and the datasource reads each field from those via Grafana `$VAR` interpolation in `grafana/provisioning/datasources/postgres.yml`. `OPENAI_API_KEY` is deliberately **not** set in the cloud — chat uses Groq only.
+Non-secret values come from the Blueprint itself: the app runs on `PORT=8000`, Grafana on `PORT=3000`. The Grafana entrypoint wrapper (`grafana/docker-entrypoint.sh`) parses the service's `DATABASE_URL` into `POSTGRES_HOST`/`POSTGRES_PORT`/`POSTGRES_DB`/`POSTGRES_USER`/`POSTGRES_PASSWORD`/`POSTGRES_SSLMODE` before Grafana starts, and the datasource reads each field from those via Grafana `$VAR` interpolation in `grafana/provisioning/datasources/postgres.yml`. `OPENAI_API_KEY` is deliberately **not** set in the cloud — chat uses Groq only.
 
 #### LLM provider: Groq primary, OpenAI fallback
 
