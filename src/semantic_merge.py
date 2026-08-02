@@ -179,15 +179,23 @@ def _extraction_rows_to_faq_rows(topics: list[CanonicalTopic]) -> list[dict]:
 
     Each bilingual topic produces two rows: EN row followed by HU row.
     EN-only topics produce one row.
+    When a bilingual topic has no EN answer, the EN row's Answer falls back
+    to the HU answer (mirrors fold_duplicate). A topic with no answer text
+    at all is not written. No written row has an empty Question or empty Answer.
     """
     faq_rows = []
     for topic in topics:
+        # Determine EN answer with fallback to HU answer for bilingual topics
+        answer_en = topic.answer_en
+        if not answer_en and topic.answer_hu and topic.question_hu:
+            answer_en = topic.answer_hu  # fallback to HU answer
+
         # EN row
-        if topic.question_en and topic.answer_en:
+        if topic.question_en and answer_en:
             faq_rows.append({
                 "Category": topic.category,
                 "Question": topic.question_en,
-                "Answer": topic.answer_en,
+                "Answer": answer_en,
             })
         # HU row (if bilingual)
         if topic.question_hu and topic.answer_hu:
@@ -273,23 +281,57 @@ def semantic_topics(
     existing_faq_rows = _load_faq_rows(faq_path)
     existing_extraction_rows = _faq_rows_to_extraction(existing_faq_rows)
 
+    # Normalize question_en fallback for existing rows
+    for row in existing_extraction_rows:
+        _normalize_question_en(row)
+
+    # Step 1a: Filter clause dumps on existing rows ONLY to build stored canonical map
+    # (gate is pure and deterministic, so result is same as in combined run)
+    kept_existing_rows, _ = filter_clause_dumps(existing_extraction_rows)
+
+    # Build stored_canonical_map: topic_key -> {answer_en, answer_hu} from kept existing rows
+    # These are the verbatim answers from faq.csv that must not be re-folded
+    stored_canonical_map = {}
+    for row in kept_existing_rows:
+        q_en = row.get("question_en", "")
+        if q_en:
+            key = topic_key(q_en)
+            stored_canonical_map[key] = {
+                "answer_en": row.get("answer_en", ""),
+                "answer_hu": row.get("answer_hu", ""),
+            }
+
     # Combine: existing file rows first (in file order), then new rows (in given order)
     all_input_rows = existing_extraction_rows + rows
 
-    # Normalize question_en fallback for all rows
-    for row in all_input_rows:
+    # Normalize question_en fallback for new rows (existing already done)
+    for row in rows:
         _normalize_question_en(row)
 
-    # Step 1: Filter clause dumps
+    # Step 1: Filter clause dumps on all input
     kept_rows, discarded_rows = filter_clause_dumps(all_input_rows)
 
     # Step 2: Cluster
     clusters = clusterer.cluster(kept_rows)
 
-    # Step 3: Canonicalize each cluster
+    # Step 3: Canonicalize each cluster, applying existing-canonical-wins
     canonical_topics = []
     for cluster in clusters:
         topic = canonicalize_cluster(cluster, kept_rows)
+        # Existing-canonical-wins: if this topic_key exists in stored map,
+        # use the stored answers verbatim (no re-folding)
+        if topic.topic_key in stored_canonical_map:
+            stored = stored_canonical_map[topic.topic_key]
+            # Replace with stored answers verbatim
+            topic = CanonicalTopic(
+                topic_key=topic.topic_key,
+                question_en=topic.question_en,
+                question_hu=topic.question_hu,
+                answer_en=stored["answer_en"],
+                answer_hu=stored["answer_hu"],
+                category=topic.category,
+                member_ids=topic.member_ids,
+            )
         canonical_topics.append(topic)
 
     # Step 4: Deduplicate by topic_key, keeping existing-canonical representative

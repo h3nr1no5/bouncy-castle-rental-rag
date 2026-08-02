@@ -128,6 +128,25 @@ def test_extraction_rows_to_faq_rows_en_only():
     assert faq_rows[0] == {"Category": "Booking & Reservations", "Question": "How much is the deposit?", "Answer": "20% deposit."}
 
 
+def test_extraction_rows_to_faq_rows_en_fallback_to_hu_answer():
+    """Bilingual topic with no EN answer falls back to HU answer for EN row."""
+    topic = CanonicalTopic(
+        topic_key="deposit",
+        question_en="How much is the deposit?",
+        question_hu="Mennyi a foglaló?",
+        answer_en="",  # No EN answer
+        answer_hu="20% foglaló.",
+        category="Booking & Reservations",
+        member_ids=(0, 1),
+    )
+    faq_rows = _extraction_rows_to_faq_rows([topic])
+    assert len(faq_rows) == 2
+    # EN row should have HU answer as fallback
+    assert faq_rows[0] == {"Category": "Booking & Reservations", "Question": "How much is the deposit?", "Answer": "20% foglaló."}
+    # HU row unchanged
+    assert faq_rows[1] == {"Category": "Booking & Reservations", "Question": "Mennyi a foglaló?", "Answer": "20% foglaló."}
+
+
 def test_extraction_rows_to_faq_rows_skips_empty_question_or_answer():
     """Topics with empty question or answer are not written."""
     topic1 = CanonicalTopic(
@@ -403,27 +422,47 @@ def test_semantic_merge_same_faq_ids_across_runs():
 
 
 def test_semantic_merge_existing_canonical_wins_no_double_fold():
-    """When topic_key exists in faq_path, stored row is emitted verbatim (no re-folding)."""
+    """When topic_key exists in faq_path, stored row is emitted verbatim (no re-folding).
+
+    Uses mocked LLMClusterer so the third paraphrase genuinely clusters with
+    the existing topic, exercising the absorption path. The stored answer must
+    not be double-folded, and re-run must be byte-identical.
+    """
+    def fake_ask_llm(system_prompt, user_message, groq_model=None, openai_model=None):
+        # All four rows (existing EN + existing HU + 2 new) assigned to same topic
+        return _llm_reply({"0": "deposit", "1": "deposit", "2": "deposit", "3": "deposit"})
+
+    clusterer = LLMClusterer(ask_llm=fake_ask_llm)
+
     with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False, newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=REQUIRED_COLUMNS)
         writer.writeheader()
-        # Pre-existing canonical row (already folded answer)
+        # Pre-existing canonical EN+HU pair (already folded answer)
         writer.writerow({"Category": "Booking", "Question": "How much is the deposit?", "Answer": "20% deposit (figures vary across companies: 20% to 30%)"})
+        writer.writerow({"Category": "Booking", "Question": "Mennyi a foglaló?", "Answer": "20% foglaló."})
         faq_path = pathlib.Path(f.name)
 
     try:
-        # Add a third paraphrase of the same topic
+        # Add two new paraphrases of the same topic (both will cluster with existing)
         new_rows = [
+            _row("C2", "Do I need to pay a deposit?", answer_en="30% deposit.", section="Booking"),
             _row("C3", "What is the deposit amount?", answer_en="25% deposit.", section="Booking"),
         ]
-        written, _ = semantic_merge(new_rows, faq_path=faq_path, clusterer=ExactClusterer(), dry_run=False)
+        written1, _ = semantic_merge(new_rows, faq_path=faq_path, clusterer=clusterer, dry_run=False)
+        content1 = faq_path.read_text(encoding="utf-8")
 
-        # Should still be 2 rows (EN+HU pair for the one topic)
-        # The existing canonical answer should be preserved verbatim
-        content = faq_path.read_text(encoding="utf-8")
-        assert "figures vary across companies: 20% to 30%" in content
-        # Should NOT have double-folded (e.g., "20% to 30% to 25%")
-        assert content.count("figures vary across companies") == 1
+        # Stored answer should be preserved verbatim (no double-fold)
+        assert "figures vary across companies: 20% to 30%" in content1
+        assert content1.count("figures vary across companies") == 1
+        # Should not contain the new figures (25%) in the folded answer
+        # (30% is already in the stored answer as "20% to 30%", so only check 25%)
+        assert "25%" not in content1
+
+        # Re-run: must be byte-identical (F1 == F2)
+        written2, _ = semantic_merge(new_rows, faq_path=faq_path, clusterer=clusterer, dry_run=False)
+        content2 = faq_path.read_text(encoding="utf-8")
+        assert content1 == content2, "Re-run not byte-identical (double-fold occurred)"
+        assert len(written1) == len(written2) == 2  # 1 bilingual topic = 2 rows (EN + HU)
     finally:
         faq_path.unlink()
 
@@ -582,6 +621,31 @@ def test_semantic_topics_question_en_fallback_to_question_hu():
     assert len(topics) == 1
     assert topics[0].question_en == "Mennyi a foglaló?"
     assert topics[0].question_hu == "Mennyi a foglaló?"
+
+
+def test_semantic_merge_bilingual_no_en_answer_fallback():
+    """Bilingual topic with no EN answer: EN row falls back to HU answer, HU row written normally."""
+    def fake_ask_llm(system_prompt, user_message, groq_model=None, openai_model=None):
+        return _llm_reply({"0": "deposit", "1": "deposit"})
+
+    clusterer = LLMClusterer(ask_llm=fake_ask_llm)
+
+    # Two bilingual rows with empty answer_en and non-empty answer_hu
+    rows = [
+        _row("C1", "How much is the deposit?", question_hu="Mennyi a foglaló?", answer_en="", answer_hu="20% foglaló.", section="Booking"),
+        _row("C2", "Do I need to pay a deposit?", question_hu="Kell foglaló?", answer_en="", answer_hu="30% foglaló.", section="Booking"),
+    ]
+    written, _ = semantic_merge(rows, clusterer=clusterer, dry_run=True)
+
+    # Should produce 2 rows: EN (with HU answer fallback) + HU
+    assert len(written) == 2
+    en_row = written[0]
+    hu_row = written[1]
+    assert en_row["Question"] == "How much is the deposit?"
+    assert en_row["Answer"] == "20% foglaló."  # Fallback to first member's HU answer
+    assert hu_row["Question"] == "Mennyi a foglaló?"
+    assert hu_row["Answer"] == "20% foglaló."
+    assert en_row["Category"] == hu_row["Category"] == "Booking"
 
 
 # --- Additional edge cases ---
