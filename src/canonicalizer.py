@@ -41,13 +41,13 @@ def topic_key(canonical_en: str) -> str:
     
     # Bound to 64 chars at word boundary
     if len(text) > 64:
-        # Find last space within 64 chars
+        # Find last hyphen within 64 chars (spaces already converted to hyphens)
         truncated = text[:64]
-        last_space = truncated.rfind(" ")
-        if last_space > 0:
-            text = truncated[:last_space]
+        last_hyphen = truncated.rfind("-")
+        if last_hyphen > 0:
+            text = truncated[:last_hyphen]
         else:
-            # No space found, truncate to 64 chars
+            # No hyphen found, truncate to 64 chars
             text = truncated
         text = text.rstrip("-")
     

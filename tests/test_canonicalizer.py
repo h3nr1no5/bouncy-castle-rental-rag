@@ -16,7 +16,7 @@ def _row(company, question_en, question_hu=None, answer_en="Answer.", answer_hu=
     return {
         "company": company,
         "question_en": question_en,
-        "question_hu": question_hu if question_hu is not None else question_en,
+        "question_hu": question_hu,
         "answer_en": answer_en,
         "answer_hu": answer_hu if answer_hu is not None else "",
         "clause_ref": clause_ref or f"{company}/1",
@@ -54,6 +54,20 @@ def test_topic_key_length_bounded():
     # Should be truncated to 64 chars (no word boundary to truncate at)
     assert len(result) == 64
     assert result == "a" * 64
+
+
+def test_topic_key_word_boundary_truncation():
+    """Word-boundary truncation works correctly (spaces already converted to hyphens)."""
+    # Example from QA: long question that should truncate at word boundary
+    long_question = "What is the maximum deposit amount that a customer is required to pay when booking a bouncy castle rental for a weekend party?"
+    result = topic_key(long_question)
+    # Should truncate at word boundary, not mid-word
+    assert result == "what-is-the-maximum-deposit-amount-that-a-customer-is-required"
+    assert len(result) <= 64
+    # Should not end with hyphen
+    assert not result.endswith("-")
+    # Should be all lowercase with hyphens
+    assert all(c.islower() or c == '-' for c in result)
 
 
 def test_topic_key_empty_fallback():
@@ -146,8 +160,9 @@ def test_canonicalize_cluster_single_member():
     
     assert result.question_en == "How much is the deposit?"
     assert result.answer_en == "20% deposit."
-    assert result.question_hu == "How much is the deposit?"
-    assert result.answer_hu == ""
+    # When question_hu is not provided (None), result should be None (EN-only topic)
+    assert result.question_hu is None
+    assert result.answer_hu is None
     assert result.category == "Terms & Conditions"
     assert result.member_ids == (0,)
 
@@ -185,13 +200,8 @@ def test_canonicalize_cluster_en_only():
     
     assert result.question_en == "How much is the deposit?"
     # When question_hu is None, it should be None in the result
-    # But _row sets question_hu to question_en when None is passed
-    # So we need to check if the result has a non-None question_hu
-    # The spec says EN-only topics are permitted, meaning question_hu can be None
-    # But our implementation sets it to question_en when None is passed
-    # Let's adjust the test to match the actual behavior
-    assert result.question_hu == "How much is the deposit?"
-    assert result.answer_hu == ""
+    assert result.question_hu is None
+    assert result.answer_hu is None
 
 
 def test_canonicalize_cluster_category_cleaning():
