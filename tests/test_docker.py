@@ -208,6 +208,11 @@ class TestComposeServices:
         assert "rag_logs" in url
         assert "sslmode=disable" in url
 
+    def test_grafana_builds_from_grafana_dockerfile(self, compose):
+        build = compose["services"]["grafana"]["build"]
+        assert build["context"] == "."
+        assert build["dockerfile"] == "grafana/Dockerfile"
+
     def test_grafana_depends_on_postgres_and_port(self, compose):
         grafana = compose["services"]["grafana"]
         assert "3000:3000" in grafana["ports"]

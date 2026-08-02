@@ -76,14 +76,16 @@ Start Postgres, seed some sample rows, then start Grafana:
 ```bash
 docker compose up -d postgres                       # Postgres for rag_logs
 uv run python grafana/seed_demo.py                  # optional: seed demo rows
-docker run -d --name grafana-issue12 \
+docker build -f grafana/Dockerfile -t grafana-rag . # image with the DATABASE_URL entrypoint wrapper
+docker run -d --name grafana-issue28 \
   --network llm-zoomcamp-rag_default \
   -p 3000:3000 \
   -v $(pwd)/grafana/provisioning:/etc/grafana/provisioning \
   -v $(pwd)/grafana/dashboard.json:/var/lib/grafana/dashboards/dashboard.json \
   -e GF_SECURITY_ADMIN_USER=admin \
   -e GF_SECURITY_ADMIN_PASSWORD=admin \
-  grafana/grafana:10.4.3
+  -e DATABASE_URL=postgres://postgres:postgres@postgres:5432/rag_logs?sslmode=disable \
+  grafana-rag
 ```
 
 Then open http://localhost:3000 and log in with `admin`/`admin`.
@@ -99,7 +101,7 @@ The dashboard is provisioned with 6 panels over `rag_logs`:
 
 Useful commands:
 
-- Stop/remove the container: `docker stop grafana-issue12 && docker rm grafana-issue12`
+- Stop/remove the container: `docker stop grafana-issue28 && docker rm grafana-issue28`
 - Re-apply provisioning file changes: Grafana reloads provisioned dashboards automatically (every 10s); datasource changes need a container restart
 - Delete all demo rows: `psql postgres://postgres:postgres@localhost:5432/rag_logs -c "DELETE FROM rag_logs"`
 

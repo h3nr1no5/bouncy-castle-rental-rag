@@ -4,7 +4,9 @@ COPY grafana/provisioning /etc/grafana/provisioning
 COPY grafana/dashboard.json /var/lib/grafana/dashboards/dashboard.json
 COPY grafana/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
+USER root
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+USER 472
 
 EXPOSE 3000
 

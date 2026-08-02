@@ -27,7 +27,10 @@ services:
     restart: unless-stopped
 
   grafana:
-    image: grafana/grafana:10.4.3
+    build:
+      context: .
+      dockerfile: grafana/Dockerfile
+    image: bouncy-castle-rag-grafana
     ports:
       - "3000:3000"
     environment:
