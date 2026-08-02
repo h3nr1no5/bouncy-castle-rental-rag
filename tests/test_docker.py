@@ -200,14 +200,13 @@ class TestComposeServices:
         assert "GF_SECURITY_ADMIN_USER" in env
         assert "GF_SECURITY_ADMIN_PASSWORD" in env
 
-    def test_grafana_gets_postgres_connection_from_env(self, compose):
+    def test_grafana_gets_connection_from_database_url(self, compose):
         env = compose["services"]["grafana"]["environment"]
-        assert env["POSTGRES_HOST"] == "postgres"
-        assert env["POSTGRES_PORT"] == 5432
-        assert env["POSTGRES_DB"] == "rag_logs"
-        assert env["POSTGRES_USER"] == "postgres"
-        assert env["POSTGRES_PASSWORD"] == "postgres"
-        assert env["POSTGRES_SSLMODE"] == "disable"
+        url = env["DATABASE_URL"]
+        assert url.startswith("postgres://")
+        assert "postgres:5432" in url
+        assert "rag_logs" in url
+        assert "sslmode=disable" in url
 
     def test_grafana_depends_on_postgres_and_port(self, compose):
         grafana = compose["services"]["grafana"]

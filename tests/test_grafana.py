@@ -1,4 +1,5 @@
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -155,6 +156,30 @@ class TestDatasourceProvisioning:
         assert datasource["user"] == "$POSTGRES_USER"
         assert datasource["secureJsonData"]["password"] == "$POSTGRES_PASSWORD"
         assert datasource["jsonData"]["sslmode"] == "$POSTGRES_SSLMODE"
+
+
+class TestGrafanaEntrypoint:
+    def test_file_exists_and_is_executable(self):
+        path = GRAFANA_DIR / "docker-entrypoint.sh"
+        assert path.is_file()
+        assert os.access(path, os.X_OK)
+
+    def test_wraps_run_sh(self):
+        script = (GRAFANA_DIR / "docker-entrypoint.sh").read_text()
+        assert "exec /run.sh" in script
+
+    def test_parses_database_url_into_postgres_vars(self):
+        script = (GRAFANA_DIR / "docker-entrypoint.sh").read_text()
+        assert "DATABASE_URL" in script
+        for var in (
+            "POSTGRES_HOST",
+            "POSTGRES_PORT",
+            "POSTGRES_DB",
+            "POSTGRES_USER",
+            "POSTGRES_PASSWORD",
+            "POSTGRES_SSLMODE",
+        ):
+            assert var in script, f"entrypoint missing {var}"
 
 
 class TestDashboardsProvisioning:

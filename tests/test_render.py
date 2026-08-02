@@ -70,14 +70,15 @@ class TestRenderBlueprint:
         assert env["GF_SECURITY_ADMIN_USER"]["value"] == "admin"
         assert env["GF_SECURITY_ADMIN_PASSWORD"]["sync"] is False
 
-    def test_grafana_postgres_vars(self, render):
+    def test_grafana_database_url_is_sync_false(self, render):
         grafana = _service(render, "bouncy-castle-rag-grafana")
         env = {e["key"]: e for e in grafana["envVars"]}
-        assert env["POSTGRES_DB"]["value"] == "neondb"
-        assert env["POSTGRES_PORT"]["value"] == 5432
-        assert env["POSTGRES_SSLMODE"]["value"] == "require"
-        for secret in ("POSTGRES_HOST", "POSTGRES_USER", "POSTGRES_PASSWORD"):
-            assert env[secret]["sync"] is False
+        assert env["DATABASE_URL"]["sync"] is False
+
+    def test_grafana_has_no_postgres_vars(self, render):
+        grafana = _service(render, "bouncy-castle-rag-grafana")
+        keys = {e["key"] for e in grafana["envVars"]}
+        assert not any(k.startswith("POSTGRES_") for k in keys)
 
 
 class TestGrafanaDockerfile:
@@ -98,3 +99,9 @@ class TestGrafanaDockerfile:
     def test_exposes_3000(self):
         content = GRAFANA_DOCKERFILE.read_text()
         assert "EXPOSE 3000" in content
+
+    def test_copies_and_runs_entrypoint(self):
+        content = GRAFANA_DOCKERFILE.read_text()
+        assert "grafana/docker-entrypoint.sh" in content
+        assert "ENTRYPOINT" in content
+        assert "docker-entrypoint.sh" in content

@@ -29,15 +29,5 @@ services:
         value: admin
       - key: GF_SECURITY_ADMIN_PASSWORD
         sync: false
-      - key: POSTGRES_HOST
+      - key: DATABASE_URL
         sync: false
-      - key: POSTGRES_USER
-        sync: false
-      - key: POSTGRES_PASSWORD
-        sync: false
-      - key: POSTGRES_DB
-        value: neondb
-      - key: POSTGRES_PORT
-        value: 5432
-      - key: POSTGRES_SSLMODE
-        value: require
