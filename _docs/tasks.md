@@ -275,16 +275,16 @@ website.
 
 ### Acceptance criteria
 
-- [ ] `app.py` is a FastAPI app exposing `POST /api/chat` and `POST /api/feedback`
+- [x] `app.py` is a FastAPI app exposing `POST /api/chat` and `POST /api/feedback`
   - `POST /api/chat` runs `answer_question()` and returns answer, contexts, model, provider, latency, cost, tokens, `interaction_id`
   - `POST /api/feedback` persists thumbs up/down via `update_feedback()`; unknown id → 404; invalid feedback → 422
-- [ ] `answer_question()` returns the Postgres `interaction_id` so feedback can be persisted (`None` when logging is skipped or fails)
-- [ ] `GET /health` returns 200
-- [ ] CORS enabled so the API can be called from a website
-- [ ] Static UI in `ui/` with no build step: text input at the bottom, conversation history above, thumbs up/down on each assistant response, expandable metadata section
-- [ ] Thumbs up/down persist via `/api/feedback`; disabled with a hint when `interaction_id` is null
-- [ ] Failed LLM calls show a graceful error message in the UI
-- [ ] `uv run pytest` passes (new `tests/test_api.py`, updated `tests/test_rag.py`)
+- [x] `answer_question()` returns the Postgres `interaction_id` so feedback can be persisted (`None` when logging is skipped or fails)
+- [x] `GET /health` returns 200
+- [x] CORS enabled so the API can be called from a website
+- [x] Static UI in `ui/` with no build step: text input at the bottom, conversation history above, thumbs up/down on each assistant response, expandable metadata section
+- [x] Thumbs up/down persist via `/api/feedback`; disabled with a hint when `interaction_id` is null
+- [x] Failed LLM calls show a graceful error message in the UI
+- [x] `uv run pytest` passes (new `tests/test_api.py`, updated `tests/test_rag.py`)
 
 ---
 
@@ -300,17 +300,17 @@ a real browser through Chrome DevTools MCP.
 
 Config (file inspection + `uv run pytest`):
 
-- [ ] `grafana/dashboard.json` exists, is valid JSON, and is loaded via a provisioning dashboards provider with no manual import
-- [ ] `grafana/provisioning/datasources/postgres.yml`: name "PostgreSQL", type `postgres`, url `postgres:5432`, database `rag_logs`, `isDefault: true`
-- [ ] `grafana/provisioning/dashboards/dashboards.yml` provisions the dashboard with `allowUiUpdates` disabled
-- [ ] ≥6 panels: (1) Recent conversations table (last 5 rows); (2) Feedback distribution pie chart (`up`/`down`/missing); (3) Average latency over time; (4) Token usage over time; (5) Estimated cost over time; (6) Model usage bar chart
-- [ ] All panels read only from `rag_logs`, extract metrics from the JSONB `metadata` column, and filter `created_at` with `$__timeFrom()` / `$__timeTo()`
-- [ ] Panels render an empty state without errors when `rag_logs` has no rows
-- [ ] `tests/test_grafana.py` passes: valid dashboard JSON, all 6 required panel titles, every panel targets `rag_logs` via the Postgres datasource, provisioning YAMLs parse with the correct settings
+- [x] `grafana/dashboard.json` exists, is valid JSON, and is loaded via a provisioning dashboards provider with no manual import
+- [x] `grafana/provisioning/datasources/postgres.yml`: name "PostgreSQL", type `postgres`, url `postgres:5432`, database `rag_logs`, `isDefault: true`
+- [x] `grafana/provisioning/dashboards/dashboards.yml` provisions the dashboard with `allowUiUpdates` disabled
+- [x] ≥6 panels: (1) Recent conversations table (last 5 rows); (2) Feedback distribution pie chart (`up`/`down`/missing); (3) Average latency over time; (4) Token usage over time; (5) Estimated cost over time; (6) Model usage bar chart
+- [x] All panels read only from `rag_logs`, extract metrics from the JSONB `metadata` column, and filter `created_at` with `$__timeFrom()` / `$__timeTo()`
+- [x] Panels render an empty state without errors when `rag_logs` has no rows
+- [x] `tests/test_grafana.py` passes: valid dashboard JSON, all 6 required panel titles, every panel targets `rag_logs` via the Postgres datasource, provisioning YAMLs parse with the correct settings
 
 Browser verification (Chrome DevTools MCP):
 
-- [ ] With Postgres running, `rag_logs` seeded with known sample rows, and Grafana started from the provisioning files: navigate to `:3000`, log in with admin credentials, confirm the datasource shows as connected (green), verify all 6 panels render data matching the seeded rows, and capture a screenshot as evidence
+- [x] With Postgres running, `rag_logs` seeded with known sample rows, and Grafana started from the provisioning files: navigate to `:3000`, log in with admin credentials, confirm the datasource shows as connected (green), verify all 6 panels render data matching the seeded rows, and capture a screenshot as evidence
 
 ---
 
@@ -438,14 +438,14 @@ port-portable image from Task 13 (no Docker Compose on Render).
 
 ### Acceptance criteria
 
-- [ ] Render web service deploys the existing `Dockerfile`; `/health` returns 200 at the deployed `$PORT`
-- [ ] A real chat round-trip works against the deployed URL; feedback persists to the Neon `rag_logs` table (auto-created by `init_db()`)
-- [ ] Indexes pre-baked into the image at build time; redeploys skip the rebuild (cold start in seconds, no runtime HF Hub download)
-- [ ] `DATABASE_URL` on Render holds the Neon URL; local `.env` keeps `DATABASE_URL` → local Postgres and `DATABASE_URL_CLOUD` → Neon
-- [ ] Grafana (2nd Render web service from `grafana/Dockerfile`) renders all 6 panels, with datasource url/user/password/database/sslmode read from env (Grafana `$VAR` interpolation) instead of hardcoded
-- [ ] Existing `rag_logs` data migrated to Neon via `pg_dump`/`psql` (one-time), verified by row-count and `created_at` range parity
-- [ ] `uv run pytest` still green; no functional changes to retrieval/eval code
-- [ ] README updated with the deployed URL, env var setup, and DB-fallback behaviour
+- [x] Render web service deploys the existing `Dockerfile`; `/health` returns 200 at the deployed `$PORT`
+- [x] A real chat round-trip works against the deployed URL; feedback persists to the Neon `rag_logs` table (auto-created by `init_db()`)
+- [x] Indexes pre-baked into the image at build time; redeploys skip the rebuild (cold start in seconds, no runtime HF Hub download)
+- [x] `DATABASE_URL` on Render holds the Neon URL; local `.env` keeps `DATABASE_URL` → local Postgres and `DATABASE_URL_CLOUD` → Neon
+- [x] Grafana (2nd Render web service from `grafana/Dockerfile`) renders all 6 panels, with datasource url/user/password/database/sslmode read from env (Grafana `$VAR` interpolation) instead of hardcoded
+- [x] Existing `rag_logs` data migrated to Neon via `pg_dump`/`psql` (one-time), verified by row-count and `created_at` range parity
+- [x] `uv run pytest` still green; no functional changes to retrieval/eval code
+- [x] README updated with the deployed URL, env var setup, and DB-fallback behaviour
 
 ---
 
@@ -460,13 +460,13 @@ and use the better approach.
 
 ### Acceptance criteria
 
-- [ ] RRF reranking per the lesson: run vector (FAISS) and keyword (BM25) searches separately, compute `compute_rrf(rank, k) = 1 / (k + rank)` per result set, sum per document, sort descending
-- [ ] Reranking applied at the end of the pipeline — `search()` returns the reranked top-k
-- [ ] Reranked (hybrid + RRF) results evaluated against `data/ground_truth.csv` via `evaluate_retrieval(search_fn=…)`, reporting hit rate@k and MRR@k
-- [ ] At least one non-reranked baseline evaluated for comparison; the side-by-side shows whether RRF improves both metrics
-- [ ] The better approach is the production default (confirm `tuned_params.json` `rrf_k`)
-- [ ] Notebook cells demonstrate the reranking scores and the before/after metrics
-- [ ] All cells run top-to-bottom without errors; `uv run pytest` still passes
+- [x] RRF reranking per the lesson: run vector (FAISS) and keyword (BM25) searches separately, compute `compute_rrf(rank, k) = 1 / (k + rank)` per result set, sum per document, sort descending
+- [x] Reranking applied at the end of the pipeline — `search()` returns the reranked top-k
+- [x] Reranked (hybrid + RRF) results evaluated against `data/ground_truth.csv` via `evaluate_retrieval(search_fn=…)`, reporting hit rate@k and MRR@k
+- [x] At least one non-reranked baseline evaluated for comparison; the side-by-side shows whether RRF improves both metrics
+- [x] The better approach is the production default (confirm `tuned_params.json` `rrf_k`)
+- [x] Notebook cells demonstrate the reranking scores and the before/after metrics
+- [x] All cells run top-to-bottom without errors; `uv run pytest` still passes
 
 ---
 
@@ -481,12 +481,98 @@ MRR@k) and make the better approach the production default.
 
 ### Acceptance criteria
 
-- [ ] LLM-based query rewrite using `ask_llm()` (Groq + OpenAI fallback) that expands abbreviations/synonyms, adds domain vocabulary, and normalises phrasing
-- [ ] Retrieval runs on the rewritten query via `search()`; the raw question is still sent to the LLM for the final answer
-- [ ] Rewriting degrades safely — falls back to the original question if the rewrite fails or returns empty
-- [ ] Both pipelines evaluated against `data/ground_truth.csv` via `evaluate_retrieval(search_fn=…)`
-- [ ] Side-by-side comparison shows whether rewriting improves both metrics over the raw-query baseline
-- [ ] The better approach is the production default
-- [ ] Rewrite step wired into `answer_question()` (`src/rag.py`) so the chat UI uses it
-- [ ] Notebook cells demonstrate the rewritten queries and the before/after metrics
-- [ ] All cells run top-to-bottom without errors; `uv run pytest` still passes
+- [x] LLM-based query rewrite using `ask_llm()` (Groq + OpenAI fallback) that expands abbreviations/synonyms, adds domain vocabulary, and normalises phrasing
+- [x] Retrieval runs on the rewritten query via `search()`; the raw question is still sent to the LLM for the final answer
+- [x] Rewriting degrades safely — falls back to the original question if the rewrite fails or returns empty
+- [x] Both pipelines evaluated against `data/ground_truth.csv` via `evaluate_retrieval(search_fn=…)`
+- [x] Side-by-side comparison shows whether rewriting improves both metrics over the raw-query baseline
+- [x] The better approach is the production default
+- [x] Rewrite step wired into `answer_question()` (`src/rag.py`) so the chat UI uses it
+- [x] Notebook cells demonstrate the rewritten queries and the before/after metrics
+- [x] All cells run top-to-bottom without errors; `uv run pytest` still passes
+
+---
+
+## 21. History-aware multi-turn query rewriting
+
+### Goal
+
+Add `rewrite_query_with_history()` to `src/rag.py` that reformulates the user's
+follow-up question using recent conversation history (default 4 turns), so
+follow-up queries surface more relevant FAQ entries; evaluate against raw
+follow-ups and make it the production default.
+
+### Acceptance criteria
+
+- [x] `rewrite_query_with_history(question, history, history_turns=4)` in `src/rag.py`, using `ask_llm()` (Groq + OpenAI fallback)
+- [x] Degrades safely: empty/missing history → single-turn rewrite; rewrite failure/empty → raw question
+- [x] Wired into `answer_question()` via `history_rewrite_enabled` / `history_turns`
+- [x] Enabled by default (`tuned_params.json`: `history_rewrite_enabled: true`)
+- [x] Notebook section 15 demonstrates rewritten queries and before/after metrics
+- [x] `uv run pytest` still passes
+
+---
+
+## 22. Conversation history in answers + server-side chat sessions
+
+### Goal
+
+Thread conversation history into answer generation and persist chat sessions
+server-side, so follow-up questions get context-aware answers.
+
+### Acceptance criteria
+
+- [x] `answer_question()` accepts `history=` and includes it in the answer-generation prompt
+- [x] `ChatRequest` carries `history` / `session_id`; `GET /api/chat/{session_id}/history` returns stored turns
+- [x] Sessions persisted via `src/db.get_session_history`; UI keeps a session id in localStorage
+- [x] Notebook section 16 demonstrates history vs no-history answer quality
+- [x] `uv run pytest` still passes
+
+---
+
+## 23. Multi-turn ground truth generation
+
+### Goal
+
+Generate an LLM-written multi-turn ground-truth set so history-aware rewriting
+and answer quality can be evaluated.
+
+### Acceptance criteria
+
+- [x] `generate_ground_truth_multi_turn.py` runnable via `uv run python generate_ground_truth_multi_turn.py`
+- [x] OpenAI structured output, 4-attempt exponential-backoff retry, `ThreadPoolExecutor` + `tqdm`
+- [x] Writes `data/ground_truth_multi_turn_generated.csv` with columns `conversation_id, prior_user_turns, follow_up_question, document_id`
+- [x] Re-running overwrites cleanly (no rows accumulate)
+- [x] `load_multi_turn_ground_truth()` in `evaluate_multi_turn_rewrite.py` consumes it unchanged
+
+---
+
+## 24. Multi-turn retrieval & answer-quality evaluation
+
+### Goal
+
+Evaluate multi-turn retrieval (rewritten vs raw follow-up) and answer quality
+(history vs no-history) against the multi-turn ground truth.
+
+### Acceptance criteria
+
+- [x] `evaluate_multi_turn_rewrite.py` reports hit rate@k, MRR@k, Recall@k, Precision@k, nDCG@k for raw vs rewritten; supports `--k`, `--k-sweep`, `--limit`, and per-FAQ/category breakdowns
+- [x] `evaluate_multi_turn_answer.py` LLM-judges coherence + relevance (1-5) for history vs no-history arms (identical retrieval), with delta and verdict
+- [x] `tests/test_evaluate_multi_turn_rewrite.py` and `tests/test_evaluate_multi_turn_answer.py` pass
+- [x] Notebook section 16 demonstrates the multi-turn answer-quality comparison
+
+---
+
+## 25. Tuned hyperparameters as production defaults
+
+### Goal
+
+Persist the best retrieval/rewrite hyperparameters from the notebook and load
+them at runtime, so tuned settings are the production defaults.
+
+### Acceptance criteria
+
+- [x] `src/config.py` `load_tuned_params()` reads `tuned_params.json` with fallback defaults (k, rrf_k, cat_weight, bm25_k1, bm25_b, rewrite flags, history_turns)
+- [x] `src/search.py` and `src/rag.py` read defaults from tuned params
+- [x] `tuned_params.json` is written from the notebook (section 17 "Applying the tuned parameters")
+- [x] `tests/test_config.py` passes
