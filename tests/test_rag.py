@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 import pytest
 
-from src.rag import answer_question
+from src.rag import answer_question, rewrite_query
 
 SAMPLE_CONTEXTS = [
     {
@@ -29,6 +29,109 @@ LLM_RESULT = {
     "cost": 0.000076,
     "tokens": {"prompt": 100, "completion": 20, "total": 120},
 }
+
+REWRITE_LLM_RESULT = {
+    "response": "bouncy castle rental price cost",
+    "model": "llama-3.3-70b-versatile",
+    "provider": "groq",
+    "latency": 0.3,
+    "cost": 0.000050,
+    "tokens": {"prompt": 50, "completion": 10, "total": 60},
+}
+
+
+class TestRewriteQuery:
+    def test_rewrite_success_returns_rewritten_query(self):
+        with patch("src.rag.ask_llm", return_value=REWRITE_LLM_RESULT) as mock_llm:
+            result = rewrite_query("How much does a castle cost?")
+        
+        assert result == "bouncy castle rental price cost"
+        mock_llm.assert_called_once()
+        _, kwargs = mock_llm.call_args
+        assert "How much does a castle cost?" in kwargs["user_message"]
+        assert kwargs["groq_model"] is None
+        assert kwargs["openai_model"] is None
+
+    def test_rewrite_forwards_model_kwargs(self):
+        with patch("src.rag.ask_llm", return_value=REWRITE_LLM_RESULT) as mock_llm:
+            rewrite_query("cost", groq_model="mixtral-8x7b-32768", openai_model="gpt-5.4-mini")
+        
+        mock_llm.assert_called_once()
+        _, kwargs = mock_llm.call_args
+        assert kwargs["groq_model"] == "mixtral-8x7b-32768"
+        assert kwargs["openai_model"] == "gpt-5.4-mini"
+
+    def test_rewrite_failure_falls_back_to_original(self):
+        with patch("src.rag.ask_llm", side_effect=RuntimeError("Both providers failed")):
+            result = rewrite_query("How much does a castle cost?")
+        
+        assert result == "How much does a castle cost?"
+
+    def test_rewrite_value_error_falls_back_to_original(self):
+        with patch("src.rag.ask_llm", side_effect=ValueError("No API key")):
+            result = rewrite_query("How much does a castle cost?")
+        
+        assert result == "How much does a castle cost?"
+
+    def test_rewrite_empty_response_falls_back_to_original(self):
+        empty_result = {**REWRITE_LLM_RESULT, "response": ""}
+        with patch("src.rag.ask_llm", return_value=empty_result):
+            result = rewrite_query("How much does a castle cost?")
+        
+        assert result == "How much does a castle cost?"
+
+    def test_rewrite_whitespace_response_falls_back_to_original(self):
+        whitespace_result = {**REWRITE_LLM_RESULT, "response": "   \n\t  "}
+        with patch("src.rag.ask_llm", return_value=whitespace_result):
+            result = rewrite_query("How much does a castle cost?")
+        
+        assert result == "How much does a castle cost?"
+
+    def test_rewrite_none_input_returns_none(self):
+        result = rewrite_query(None)
+        assert result is None
+
+    def test_rewrite_empty_string_returns_empty_string(self):
+        result = rewrite_query("")
+        assert result == ""
+
+    def test_rewrite_whitespace_string_returns_whitespace_string(self):
+        result = rewrite_query("   ")
+        assert result == "   "
+
+    def test_rewrite_returns_string(self):
+        with patch("src.rag.ask_llm", return_value=REWRITE_LLM_RESULT):
+            result = rewrite_query("cost")
+        
+        assert isinstance(result, str)
+
+    def test_rewrite_none_llm_result_falls_back_to_original(self):
+        """When ask_llm returns None, fall back to original question."""
+        with patch("src.rag.ask_llm", return_value=None):
+            result = rewrite_query("How much does a castle cost?")
+        
+        assert result == "How much does a castle cost?"
+
+    def test_rewrite_none_response_falls_back_to_original(self):
+        """When ask_llm returns a dict with None response, fall back to original question."""
+        with patch("src.rag.ask_llm", return_value={"response": None, "model": "test", "provider": "test", "latency": 0.1, "cost": 0.0, "tokens": {"prompt": 1, "completion": 1, "total": 2}}):
+            result = rewrite_query("How much does a castle cost?")
+        
+        assert result == "How much does a castle cost?"
+
+    def test_rewrite_non_string_response_falls_back_to_original(self):
+        """When ask_llm returns a dict with non-string response, fall back to original question."""
+        with patch("src.rag.ask_llm", return_value={"response": 123, "model": "test", "provider": "test", "latency": 0.1, "cost": 0.0, "tokens": {"prompt": 1, "completion": 1, "total": 2}}):
+            result = rewrite_query("How much does a castle cost?")
+        
+        assert result == "How much does a castle cost?"
+
+    def test_rewrite_attribute_error_falls_back_to_original(self):
+        """When ask_llm raises AttributeError (e.g., result is None), fall back to original question."""
+        with patch("src.rag.ask_llm", side_effect=AttributeError("'NoneType' object has no attribute 'get'")):
+            result = rewrite_query("How much does a castle cost?")
+        
+        assert result == "How much does a castle cost?"
 
 
 class TestAnswerQuestion:
@@ -156,3 +259,79 @@ class TestAnswerQuestion:
             answer_question("cost")
 
         mock_log.assert_not_called()
+
+    def test_rewrite_enabled_false_uses_raw_question_for_search(self):
+        """When rewrite_enabled=False, the raw question is passed to search()."""
+        with (
+            patch("src.rag.search", return_value=SAMPLE_CONTEXTS) as mock_search,
+            patch("src.rag.ask_llm", return_value=LLM_RESULT),
+            patch("src.rag.load_tuned_params", return_value={"rewrite_enabled": False, "k": 5, "rrf_k": 1, "cat_weight": 0, "bm25_k1": 1.5, "bm25_b": 0.75}),
+        ):
+            answer_question("booking")
+
+        mock_search.assert_called_once()
+        args, _ = mock_search.call_args
+        assert args[0] == "booking"
+
+    def test_rewrite_enabled_true_uses_rewritten_query_for_search(self):
+        """When rewrite_enabled=True, the rewritten query is passed to search()."""
+        with (
+            patch("src.rag.search", return_value=SAMPLE_CONTEXTS) as mock_search,
+            patch("src.rag.ask_llm", side_effect=[REWRITE_LLM_RESULT, LLM_RESULT]) as mock_llm,
+            patch("src.rag.load_tuned_params", return_value={"rewrite_enabled": True, "k": 5, "rrf_k": 1, "cat_weight": 0, "bm25_k1": 1.5, "bm25_b": 0.75}),
+        ):
+            answer_question("cost")
+
+        # search() should be called with the rewritten query
+        mock_search.assert_called_once()
+        args, _ = mock_search.call_args
+        assert args[0] == "bouncy castle rental price cost"
+        
+        # ask_llm() should be called twice: once for rewrite, once for answer
+        assert mock_llm.call_count == 2
+        # First call is for rewrite
+        _, kwargs1 = mock_llm.call_args_list[0]
+        assert "cost" in kwargs1["user_message"]
+        # Second call is for answer with raw question
+        _, kwargs2 = mock_llm.call_args_list[1]
+        assert kwargs2["user_message"] == "cost"
+
+    def test_rewrite_failure_falls_back_to_raw_question(self):
+        """When rewrite fails, the raw question is used for search()."""
+        with (
+            patch("src.rag.search", return_value=SAMPLE_CONTEXTS) as mock_search,
+            patch("src.rag.ask_llm", side_effect=[RuntimeError("LLM failed"), LLM_RESULT]),
+            patch("src.rag.load_tuned_params", return_value={"rewrite_enabled": True, "k": 5, "rrf_k": 1, "cat_weight": 0, "bm25_k1": 1.5, "bm25_b": 0.75}),
+        ):
+            answer_question("cost")
+
+        mock_search.assert_called_once()
+        args, _ = mock_search.call_args
+        assert args[0] == "cost"  # Falls back to raw question
+
+    def test_rewrite_empty_falls_back_to_raw_question(self):
+        """When rewrite returns empty, the raw question is used for search()."""
+        empty_rewrite = {**REWRITE_LLM_RESULT, "response": ""}
+        with (
+            patch("src.rag.search", return_value=SAMPLE_CONTEXTS) as mock_search,
+            patch("src.rag.ask_llm", side_effect=[empty_rewrite, LLM_RESULT]),
+            patch("src.rag.load_tuned_params", return_value={"rewrite_enabled": True, "k": 5, "rrf_k": 1, "cat_weight": 0, "bm25_k1": 1.5, "bm25_b": 0.75}),
+        ):
+            answer_question("cost")
+
+        mock_search.assert_called_once()
+        args, _ = mock_search.call_args
+        assert args[0] == "cost"  # Falls back to raw question
+
+    def test_rewrite_does_not_increase_k(self):
+        """Rewriting does not increase the number of FAQ entries sent to the LLM prompt beyond k."""
+        with (
+            patch("src.rag.search", return_value=SAMPLE_CONTEXTS) as mock_search,
+            patch("src.rag.ask_llm", side_effect=[REWRITE_LLM_RESULT, LLM_RESULT]),
+            patch("src.rag.load_tuned_params", return_value={"rewrite_enabled": True, "k": 3, "rrf_k": 1, "cat_weight": 0, "bm25_k1": 1.5, "bm25_b": 0.75}),
+        ):
+            answer_question("cost", k=3)
+
+        mock_search.assert_called_once()
+        _, kwargs = mock_search.call_args
+        assert kwargs.get("k") == 3

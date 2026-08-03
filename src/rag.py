@@ -1,5 +1,6 @@
 import sys
 
+from src.config import load_tuned_params
 from src.llm import ask_llm
 from src.search import search
 
@@ -10,6 +11,20 @@ If the FAQ entries do not contain enough information to answer the question, say
 
 FAQ entries:
 {contexts}"""
+
+REWRITE_PROMPT_TEMPLATE = """You are a search query optimizer for a bouncy castle rental FAQ system.
+Rewrite the user's question into a search-friendly query that will retrieve the most relevant FAQ entries.
+
+Guidelines:
+- Expand abbreviations and synonyms (e.g., "bday" → "birthday", "bouncy" → "inflatable bounce house")
+- Add domain vocabulary (e.g., "setup" → "delivery setup installation", "cost" → "price rental fee")
+- Normalize phrasing (e.g., "how much?" → "what is the rental price cost")
+- Keep it concise but comprehensive
+- Return ONLY the rewritten query text, nothing else
+
+User question: {question}
+
+Rewritten query:"""
 
 
 def _format_contexts(contexts):
@@ -23,6 +38,56 @@ def _format_contexts(contexts):
     return "\n".join(lines)
 
 
+def rewrite_query(question, groq_model=None, openai_model=None):
+    """
+    Rewrite a user's raw question into a search-friendly query using an LLM.
+    
+    Args:
+        question: The user's raw question (string)
+        groq_model: Optional Groq model to use
+        openai_model: Optional OpenAI model to use
+    
+    Returns:
+        A rewritten search query string. Falls back to the original question
+        if the rewrite fails, returns empty, or the input is invalid.
+    """
+    # Handle non-string or empty/whitespace input
+    if not isinstance(question, str) or not question.strip():
+        return question
+    
+    # Build the rewrite prompt
+    rewrite_prompt = REWRITE_PROMPT_TEMPLATE.format(question=question.strip())
+    
+    try:
+        result = ask_llm(
+            system_prompt="You are a search query optimizer. Return only the rewritten query.",
+            user_message=rewrite_prompt,
+            groq_model=groq_model,
+            openai_model=openai_model,
+        )
+        
+        # Handle None result or missing/non-string response
+        if result is None:
+            return question
+        
+        response = result.get("response")
+        if not isinstance(response, str):
+            return question
+        
+        rewritten = response.strip()
+        
+        # Fall back to original if rewrite is empty or whitespace-only
+        if not rewritten:
+            return question
+        
+        return rewritten
+    
+    except Exception:
+        # Any exception (including RuntimeError, ValueError, AttributeError, etc.)
+        # fall back to original question
+        return question
+
+
 def answer_question(
     question,
     k=None,
@@ -32,11 +97,23 @@ def answer_question(
     groq_model=None,
     openai_model=None,
 ):
-    contexts = search(question, k=k, bm25_path=bm25_path, faiss_path=faiss_path, docs_path=docs_path)
+    # Load config to check if query rewriting is enabled
+    params = load_tuned_params()
+    rewrite_enabled = params.get("rewrite_enabled", False)
+    
+    # Determine the search query (rewritten or raw)
+    if rewrite_enabled:
+        search_query = rewrite_query(question, groq_model=groq_model, openai_model=openai_model)
+    else:
+        search_query = question
+    
+    # Retrieve using the (potentially rewritten) query
+    contexts = search(search_query, k=k, bm25_path=bm25_path, faiss_path=faiss_path, docs_path=docs_path)
 
     formatted = _format_contexts(contexts)
     system_prompt = SYSTEM_PROMPT_TEMPLATE.format(contexts=formatted)
 
+    # The raw question is still sent to the LLM for the final answer
     result = ask_llm(
         system_prompt=system_prompt,
         user_message=question,
