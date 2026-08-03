@@ -12,6 +12,17 @@ If the FAQ entries do not contain enough information to answer the question, say
 FAQ entries:
 {contexts}"""
 
+SYSTEM_PROMPT_WITH_HISTORY_TEMPLATE = """You are a helpful rental FAQ assistant for a bouncy castle rental company.
+Answer the user's question based on the following FAQ entries.
+
+If the FAQ entries do not contain enough information to answer the question, say so clearly.
+
+Conversation history:
+{history}
+
+FAQ entries:
+{contexts}"""
+
 REWRITE_PROMPT_TEMPLATE = """You are a search query optimizer for a bouncy castle rental FAQ system.
 Rewrite the user's question into a search-friendly query that will retrieve the most relevant FAQ entries.
 
@@ -243,7 +254,19 @@ def answer_question(
     contexts = search(search_query, k=k, bm25_path=bm25_path, faiss_path=faiss_path, docs_path=docs_path)
 
     formatted = _format_contexts(contexts)
-    system_prompt = SYSTEM_PROMPT_TEMPLATE.format(contexts=formatted)
+
+    # Include the conversation history in the answer prompt whenever valid history
+    # is provided (bounded to the last `history_turns` messages). Answer memory is
+    # independent of the query-rewriting flags. With no valid history, the prompt
+    # stays identical to the single-turn prompt (no history section).
+    formatted_history = _format_history_for_prompt(history, history_turns)
+    if formatted_history:
+        system_prompt = SYSTEM_PROMPT_WITH_HISTORY_TEMPLATE.format(
+            history=formatted_history,
+            contexts=formatted,
+        )
+    else:
+        system_prompt = SYSTEM_PROMPT_TEMPLATE.format(contexts=formatted)
 
     # The raw question is still sent to the LLM for the final answer
     result = ask_llm(

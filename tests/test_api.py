@@ -76,6 +76,33 @@ class TestChat:
         assert resp.status_code == 502
         assert "LLM failed" in resp.json()["detail"]
 
+    def test_chat_with_history_includes_history_in_answer_prompt(self):
+        """POST /api/chat with a history body produces an answer whose generation prompt contains the history."""
+        history = [
+            {"role": "user", "content": "Do you rent bouncy castles?"},
+            {"role": "assistant", "content": "Yes, we do."},
+        ]
+        with (
+            patch("src.rag.search", return_value=SAMPLE_CONTEXTS),
+            patch("src.rag.ask_llm", return_value=LLM_RESULT) as mock_llm,
+            patch("app._log_interaction", return_value=None),
+        ):
+            resp = client.post(
+                "/api/chat",
+                json={"question": "how much for a weekend?", "history": history},
+            )
+
+        assert resp.status_code == 200
+        assert resp.json()["answer"] == LLM_RESULT["response"]
+
+        # The final answer call (last ask_llm call) must include the history.
+        # (rewrite_enabled is true in tuned_params.json, so there may be a rewrite call first.)
+        _, kwargs = mock_llm.call_args_list[-1]
+        assert "User: Do you rent bouncy castles?" in kwargs["system_prompt"]
+        assert "Assistant: Yes, we do." in kwargs["system_prompt"]
+        # Raw latest question remains the user_message
+        assert kwargs["user_message"] == "how much for a weekend?"
+
     def test_rejects_empty_question(self):
         resp = client.post("/api/chat", json={"question": ""})
         assert resp.status_code == 422

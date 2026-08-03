@@ -537,3 +537,179 @@ class TestAnswerQuestion:
 
         # ask_llm() should be called only once (no rewrite call)
         assert mock_llm.call_count == 1
+
+
+class TestAnswerQuestionHistory:
+    """History threading into the final answer-generation prompt (issue #53)."""
+
+    DEFAULT_PARAMS = {
+        "rewrite_enabled": False,
+        "history_rewrite_enabled": False,
+        "history_turns": 4,
+        "k": 5,
+        "rrf_k": 1,
+        "cat_weight": 0,
+        "bm25_k1": 1.5,
+        "bm25_b": 0.75,
+    }
+
+    HISTORY = [
+        {"role": "user", "content": "Do you rent bouncy castles?"},
+        {"role": "assistant", "content": "Yes, we do."},
+    ]
+
+    def _answer(self, question="how much for a weekend?", history=HISTORY, params=None, llm_result=LLM_RESULT):
+        params = params or self.DEFAULT_PARAMS
+        with (
+            patch("src.rag.search", return_value=SAMPLE_CONTEXTS) as mock_search,
+            patch("src.rag.ask_llm", return_value=llm_result) as mock_llm,
+            patch("src.rag.load_tuned_params", return_value=params),
+        ):
+            result = answer_question(question=question, history=history)
+        return result, mock_search, mock_llm
+
+    def test_history_included_in_answer_prompt(self):
+        """Non-empty valid history is formatted as User:/Assistant: lines in the answer prompt; raw question stays user_message."""
+        _, _, mock_llm = self._answer("how much for a weekend?")
+
+        mock_llm.assert_called_once()
+        _, kwargs = mock_llm.call_args
+        system_prompt = kwargs["system_prompt"]
+        assert "User: Do you rent bouncy castles?" in system_prompt
+        assert "Assistant: Yes, we do." in system_prompt
+        # FAQ contexts still present alongside history
+        assert "Prices start at $100" in system_prompt
+        # Raw question remains the user_message
+        assert kwargs["user_message"] == "how much for a weekend?"
+
+    def test_history_included_independent_of_rewrite_flags(self):
+        """History is included in the answer prompt even when rewrite flags are enabled."""
+        params = {
+            "rewrite_enabled": True,
+            "history_rewrite_enabled": False,
+            "history_turns": 4,
+            "k": 5,
+            "rrf_k": 1,
+            "cat_weight": 0,
+            "bm25_k1": 1.5,
+            "bm25_b": 0.75,
+        }
+        with (
+            patch("src.rag.search", return_value=SAMPLE_CONTEXTS),
+            patch("src.rag.ask_llm", side_effect=[REWRITE_LLM_RESULT, LLM_RESULT]) as mock_llm,
+            patch("src.rag.load_tuned_params", return_value=params),
+        ):
+            answer_question(question="how much for a weekend?", history=self.HISTORY)
+
+        # Two calls: rewrite + final answer. Final answer must include history.
+        assert mock_llm.call_count == 2
+        _, kwargs2 = mock_llm.call_args_list[1]
+        assert "User: Do you rent bouncy castles?" in kwargs2["system_prompt"]
+        assert "Assistant: Yes, we do." in kwargs2["system_prompt"]
+        assert kwargs2["user_message"] == "how much for a weekend?"
+
+    def test_history_bounded_to_history_turns(self):
+        """History in the answer prompt is truncated to the last history_turns messages."""
+        params = dict(self.DEFAULT_PARAMS, history_turns=2)
+        long_history = [
+            {"role": "user", "content": "Do you rent bouncy castles?"},
+            {"role": "assistant", "content": "Yes, we do."},
+            {"role": "user", "content": "What sizes are available?"},
+            {"role": "assistant", "content": "Small, medium, large."},
+            {"role": "user", "content": "How much for a day?"},
+            {"role": "assistant", "content": "$100 per day."},
+        ]
+        _, _, mock_llm = self._answer("how much for a weekend?", history=long_history, params=params)
+
+        _, kwargs = mock_llm.call_args
+        system_prompt = kwargs["system_prompt"]
+        # Only the last 2 messages are included
+        assert "User: How much for a day?" in system_prompt
+        assert "Assistant: $100 per day." in system_prompt
+        # Earlier messages are truncated, not rejected
+        assert "Do you rent bouncy castles?" not in system_prompt
+        assert "What sizes are available?" not in system_prompt
+
+    def test_no_history_prompt_identical_to_single_turn(self):
+        """With history=None or history=[], the answer prompt has no history section."""
+        for empty in (None, []):
+            _, _, mock_llm = self._answer("how much for a weekend?", history=empty)
+            _, kwargs = mock_llm.call_args
+            system_prompt = kwargs["system_prompt"]
+            assert "Conversation history" not in system_prompt
+            assert "User:" not in system_prompt
+            assert "Assistant:" not in system_prompt
+            assert kwargs["user_message"] == "how much for a weekend?"
+
+    def test_malformed_history_filtered_and_no_raise(self):
+        """Malformed history entries are filtered out and never raise."""
+        malformed = [
+            {"role": "user"},  # missing content
+            {"content": "hello"},  # missing role
+            {"role": "user", "content": 123},  # non-string content
+            {"role": "unknown", "content": "test"},  # unknown role
+            {"role": "assistant", "content": None},  # None content
+            "not a dict",  # not a dict at all
+        ]
+        _, _, mock_llm = self._answer("cost", history=malformed)
+
+        _, kwargs = mock_llm.call_args
+        system_prompt = kwargs["system_prompt"]
+        assert "Conversation history" not in system_prompt
+        assert kwargs["user_message"] == "cost"
+
+    def test_only_user_turns_produces_valid_answer(self):
+        """History with only user turns still produces a valid answer with history included."""
+        history = [{"role": "user", "content": "Do you rent bouncy castles?"}]
+        _, _, mock_llm = self._answer("how much for a weekend?", history=history)
+
+        _, kwargs = mock_llm.call_args
+        assert "User: Do you rent bouncy castles?" in kwargs["system_prompt"]
+        assert kwargs["user_message"] == "how much for a weekend?"
+
+    def test_only_assistant_turns_produces_valid_answer(self):
+        """History with only assistant turns still produces a valid answer with history included."""
+        history = [{"role": "assistant", "content": "Yes, we do."}]
+        _, _, mock_llm = self._answer("how much for a weekend?", history=history)
+
+        _, kwargs = mock_llm.call_args
+        assert "Assistant: Yes, we do." in kwargs["system_prompt"]
+        assert kwargs["user_message"] == "how much for a weekend?"
+
+    def test_current_question_not_duplicated_into_history(self):
+        """The current question is not duplicated into the history section."""
+        question = "how much for a weekend?"
+        _, _, mock_llm = self._answer(question)
+
+        _, kwargs = mock_llm.call_args
+        system_prompt = kwargs["system_prompt"]
+        # The question appears only as the user_message, not in the history section
+        assert question not in system_prompt
+        assert kwargs["user_message"] == question
+
+    def test_llm_error_propagates_with_history(self):
+        """If the final answer ask_llm call fails, the error propagates (no new failure modes)."""
+        with (
+            patch("src.rag.search", return_value=SAMPLE_CONTEXTS),
+            patch("src.rag.ask_llm", side_effect=RuntimeError("LLM failed")),
+            patch("src.rag.load_tuned_params", return_value=self.DEFAULT_PARAMS),
+        ):
+            with pytest.raises(RuntimeError, match="LLM failed"):
+                answer_question(question="cost", history=self.HISTORY)
+
+    def test_faq_context_count_not_exceeded(self):
+        """The number of FAQ entries in the answer prompt does not exceed k (no inflation by history)."""
+        params = dict(self.DEFAULT_PARAMS, k=5)
+        with (
+            patch("src.rag.search", return_value=SAMPLE_CONTEXTS) as mock_search,
+            patch("src.rag.ask_llm", return_value=LLM_RESULT) as mock_llm,
+            patch("src.rag.load_tuned_params", return_value=params),
+        ):
+            answer_question(question="cost", history=self.HISTORY, k=5)
+
+        mock_search.assert_called_once()
+        _, kwargs = mock_llm.call_args
+        system_prompt = kwargs["system_prompt"]
+        # The prompt contains exactly the FAQ entries search returned (bounded by k=5)
+        assert system_prompt.count("Category:") == len(SAMPLE_CONTEXTS)
+        assert system_prompt.count("Category:") <= 5
