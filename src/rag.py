@@ -229,11 +229,17 @@ def answer_question(
     docs_path=None,
     groq_model=None,
     openai_model=None,
+    rewrite_enabled=None,
+    history_rewrite_enabled=None,
 ):
-    # Load config to check if query rewriting is enabled
+    # Load config to check if query rewriting is enabled. The rewrite flags can
+    # be overridden per call (e.g. evaluations that must fix retrieval across
+    # arms); None falls back to tuned_params.json.
     params = load_tuned_params()
-    rewrite_enabled = params.get("rewrite_enabled", False)
-    history_rewrite_enabled = params.get("history_rewrite_enabled", False)
+    if rewrite_enabled is None:
+        rewrite_enabled = params.get("rewrite_enabled", False)
+    if history_rewrite_enabled is None:
+        history_rewrite_enabled = params.get("history_rewrite_enabled", False)
     history_turns = params.get("history_turns", 4)
     
     # Determine the search query (multi-turn rewrite, single-turn rewrite, or raw)

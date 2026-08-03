@@ -277,6 +277,51 @@ class TestAnswerQuestion:
         args, _ = mock_search.call_args
         assert args[0] == "booking"
 
+    def test_rewrite_enabled_override_false_uses_raw_question(self):
+        """rewrite_enabled=True in tuned params is overridden by rewrite_enabled=False kwarg."""
+        with (
+            patch("src.rag.search", return_value=SAMPLE_CONTEXTS) as mock_search,
+            patch("src.rag.ask_llm", return_value=LLM_RESULT) as mock_llm,
+            patch("src.rag.load_tuned_params", return_value={"rewrite_enabled": True, "history_rewrite_enabled": False, "history_turns": 4, "k": 5, "rrf_k": 1, "cat_weight": 0, "bm25_k1": 1.5, "bm25_b": 0.75}),
+        ):
+            answer_question("booking", rewrite_enabled=False, history_rewrite_enabled=False)
+
+        mock_search.assert_called_once()
+        args, _ = mock_search.call_args
+        assert args[0] == "booking"  # raw question, no rewrite
+        assert mock_llm.call_count == 1  # no rewrite call
+
+    def test_rewrite_enabled_override_true_forces_rewrite(self):
+        """rewrite_enabled=False in tuned params is overridden by rewrite_enabled=True kwarg."""
+        with (
+            patch("src.rag.search", return_value=SAMPLE_CONTEXTS) as mock_search,
+            patch("src.rag.ask_llm", side_effect=[REWRITE_LLM_RESULT, LLM_RESULT]) as mock_llm,
+            patch("src.rag.load_tuned_params", return_value={"rewrite_enabled": False, "history_rewrite_enabled": False, "history_turns": 4, "k": 5, "rrf_k": 1, "cat_weight": 0, "bm25_k1": 1.5, "bm25_b": 0.75}),
+        ):
+            answer_question("cost", rewrite_enabled=True, history_rewrite_enabled=False)
+
+        mock_search.assert_called_once()
+        args, _ = mock_search.call_args
+        assert args[0] == "bouncy castle rental price cost"
+        assert mock_llm.call_count == 2
+
+    def test_history_rewrite_enabled_override_true_forces_multi_turn(self):
+        """history_rewrite_enabled=False in tuned params is overridden by history_rewrite_enabled=True kwarg."""
+        history = [{"role": "user", "content": "Do you rent bouncy castles?"}]
+        with (
+            patch("src.rag.search", return_value=SAMPLE_CONTEXTS) as mock_search,
+            patch("src.rag.ask_llm", side_effect=[REWRITE_LLM_RESULT, LLM_RESULT]) as mock_llm,
+            patch("src.rag.load_tuned_params", return_value={"rewrite_enabled": False, "history_rewrite_enabled": False, "history_turns": 4, "k": 5, "rrf_k": 1, "cat_weight": 0, "bm25_k1": 1.5, "bm25_b": 0.75}),
+        ):
+            answer_question("how much?", history=history, rewrite_enabled=False, history_rewrite_enabled=True)
+
+        mock_search.assert_called_once()
+        args, _ = mock_search.call_args
+        assert args[0] == "bouncy castle rental price cost"
+        assert mock_llm.call_count == 2
+        _, kwargs1 = mock_llm.call_args_list[0]
+        assert "Do you rent bouncy castles?" in kwargs1["user_message"]
+
     def test_rewrite_enabled_true_uses_rewritten_query_for_search(self):
         """When rewrite_enabled=True, the rewritten query is passed to search()."""
         with (
