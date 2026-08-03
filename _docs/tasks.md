@@ -18,9 +18,9 @@ Provide a `load_faqs()` function in `src/faqs.py` that reads `data/faq.csv`, str
 
 - [x] `src/faqs.py` exports `load_faqs()` returning `list[dict[str, str]]` with keys `Category`, `Question`, `Answer`
 - [x] CSV cell values have leading/trailing whitespace stripped
-- [x] A `python -m src.faqs` entry point prints `Rows: 42` and the column names
+- [x] A `python -m src.faqs` entry point prints `Rows: 41` and the column names
 - [x] `tests/test_faqs.py` verifies:
-  - the CSV is non-empty (42 rows)
+  - the CSV is non-empty (41 rows)
   - every row has all three non-empty string keys
   - `load_faqs()` raises `FileNotFoundError` with a clear message when the CSV is missing
 - [x] The CSV path defaults to `<project_root>/data/faq.csv` and is overridable via an optional `path` argument
@@ -74,8 +74,8 @@ An `exploration.ipynb` notebook at the project root that demonstrates every func
 - [x] `exploration.ipynb` exists at the project root
 - [x] Notebook cells are preceded by markdown explaining what each cell does and why
 - [x] Section 1 — Setup: imports from `src.faqs`, `src.pipeline`, `src.ingest`, `src.search`; create a `db/` working directory
-- [x] Section 2 — Load FAQ Data: calls `load_faqs()`, prints row count (42), displays 3 sample rows, shows column-level missing-value stats
-- [x] Section 3 — dlt Pipeline: runs `run_pipeline()` into `db/test_faq.duckdb`, queries the loaded table with `duckdb`, re-runs the pipeline and confirms the row count stays the same (idempotency)
+- [x] Section 2 — Load FAQ Data: calls `load_faqs()`, prints row count (41), displays 3 sample rows, shows column-level missing-value stats
+- [x] Section 3 — dlt Pipeline: runs `run_pipeline()` into `db/faq_ingestion.duckdb`, queries the loaded table with `duckdb`, re-runs the pipeline and confirms the row count stays the same (idempotency)
 - [x] Section 4 — Build Indexes: calls `build_indexes(force=True)` with all paths under `db/`, inspects the BM25 pickle count, FAISS index dimensions (ntotal, d), and docs JSON structure
 - [x] Section 5 — Hybrid Search: calls `search()` with at least three different queries (e.g. "booking", "cost", "safety"), prints ranked results with RRF scores, demonstrates `k=1` vs `k=5` and an empty-query edge case
 - [x] Section 6 — Cleanup (optional): skipped — `db/` is persistent; remove manually if desired
@@ -246,7 +246,7 @@ Replace the manually written `data/ground_truth.json` with a script that uses an
 ### Acceptance criteria
 
 - [x] `generate_ground_truth.py` exists at project root and is runnable via `uv run python generate_ground_truth.py`
-- [x] It loads all 42 FAQs from `data/faq.csv` via `src.faqs.load_faqs()`
+- [x] It loads all 41 FAQs from `data/faq.csv` via `src.faqs.load_faqs()`
 - [x] Uses OpenAI **structured output** (`client.responses.parse()` with Pydantic `Questions` model) — not `ask_llm()`
 - [x] Model: `gpt-5.4-mini`, with pricing displayed after run ($0.75/M input, $4.50/M output)
 - [x] Retry logic with exponential backoff on API errors

@@ -67,12 +67,16 @@ class TestLoader:
 
     def test_default_path_loads_repo_ground_truth(self):
         loaded = evr.load_multi_turn_ground_truth()
-        assert len(loaded["items"]) == 12
+        assert len(loaded["items"]) == 205
         assert loaded["skipped"] == 0
+        assert loaded["no_history"] == 0
         item = loaded["items"][0]
-        assert item["question"] == "How much for a weekend?"
-        assert item["document_id"] == "faq_36"
-        assert item["history"] == [{"role": "user", "content": "Do you rent bouncy castles?"}]
+        assert item["question"] == "How soon should I get this set up?"
+        assert item["document_id"] == "faq_0"
+        assert item["history"] == [
+            {"role": "user", "content": "We're planning my son's birthday party and want to lock in a date."},
+            {"role": "user", "content": "It's probably going to be on a Saturday in June."},
+        ]
 
     def test_valid_rows_parsed(self, tmp_path):
         path = _write_gt(tmp_path, [

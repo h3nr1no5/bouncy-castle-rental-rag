@@ -3,7 +3,7 @@
 Evaluate multi-turn query rewriting vs raw follow-up question retrieval.
 
 This script evaluates both pipelines against a multi-turn ground-truth CSV
-(default: data/ground_truth_multi_turn.csv, overridable with --ground-truth):
+(default: data/ground_truth_multi_turn_generated.csv, overridable with --ground-truth):
 - Raw follow-up: search(follow_up_question, ...)
 - Multi-turn rewritten: search(rewrite_query_with_history(follow_up_question, history), ...)
 
@@ -14,7 +14,7 @@ evaluated rows capped with --limit.
 
 Usage:
     uv run python evaluate_multi_turn_rewrite.py
-    uv run python evaluate_multi_turn_rewrite.py --ground-truth data/ground_truth_multi_turn_generated.csv
+    uv run python evaluate_multi_turn_rewrite.py --ground-truth data/ground_truth_multi_turn.csv
     uv run python evaluate_multi_turn_rewrite.py --k 10
     uv run python evaluate_multi_turn_rewrite.py --k-sweep 1,3,5,10
     uv run python evaluate_multi_turn_rewrite.py --limit 50
@@ -37,7 +37,7 @@ from src.config import load_tuned_params
 from src.faqs import load_faqs
 
 DEFAULT_GROUND_TRUTH_PATH = (
-    pathlib.Path(__file__).resolve().parents[0] / "data" / "ground_truth_multi_turn.csv"
+    pathlib.Path(__file__).resolve().parents[0] / "data" / "ground_truth_multi_turn_generated.csv"
 )
 
 REQUIRED_COLUMNS = ("prior_user_turns", "follow_up_question", "document_id")
@@ -82,7 +82,7 @@ def load_multi_turn_ground_truth(path=None):
 
     Args:
         path: Path to the ground-truth CSV (defaults to
-            ``<repo root>/data/ground_truth_multi_turn.csv``).
+            ``<repo root>/data/ground_truth_multi_turn_generated.csv``).
 
     Returns:
         A dict with keys:
@@ -452,7 +452,7 @@ if __name__ == "__main__":
         dest="ground_truth_path",
         default=None,
         help="Path to a multi-turn ground-truth CSV "
-             "(default: data/ground_truth_multi_turn.csv)",
+             "(default: data/ground_truth_multi_turn_generated.csv)",
     )
     k_group = parser.add_mutually_exclusive_group()
     k_group.add_argument(

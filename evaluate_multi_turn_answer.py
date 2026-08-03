@@ -4,8 +4,8 @@ Evaluate multi-turn answer quality for conversational memory.
 
 This script measures whether threading the conversation history into the
 answer-generation prompt improves follow-up answer quality. For every item in
-data/ground_truth_multi_turn.csv it generates two answers to the follow-up
-question:
+data/ground_truth_multi_turn_generated.csv it generates two answers to the
+follow-up question:
 
 - no-history arm: `answer_question(follow_up, history=None)`
 - history arm:    `answer_question(follow_up, history=history)`
@@ -41,7 +41,7 @@ from src.llm import ask_llm
 from src.rag import answer_question
 
 DEFAULT_GROUND_TRUTH_PATH = (
-    pathlib.Path(__file__).resolve().parents[0] / "data" / "ground_truth_multi_turn.csv"
+    pathlib.Path(__file__).resolve().parents[0] / "data" / "ground_truth_multi_turn_generated.csv"
 )
 
 REQUIRED_COLUMNS = ("prior_user_turns", "follow_up_question", "document_id")
@@ -82,7 +82,7 @@ def load_multi_turn_ground_truth(path=None):
 
     Args:
         path: Path to the ground-truth CSV (defaults to
-            ``<repo root>/data/ground_truth_multi_turn.csv``).
+            ``<repo root>/data/ground_truth_multi_turn_generated.csv``).
 
     Returns:
         A dict with keys:
