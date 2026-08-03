@@ -19,8 +19,6 @@ A RAG system over a bouncy castle rental FAQ (`data/faq.csv`, 41 entries):
 - **Feedback & monitoring** — every interaction (question, answer, tokens, latency, cost, model) is logged to Postgres; thumbs up/down feedback is collected and visualised in a Grafana dashboard.
 - **Packaging & deployment** — Docker Compose for local development, one-click deploy to Render (app + Postgres + Grafana).
 
-Inspired by the course example: [fitness-assistant](https://github.com/alexeygrigorev/fitness-assistant/tree/main).
-
 ## Evaluation criteria
 
 The project is scored against the rubric in [`_docs/project-evaluation.md`](project-evaluation.md).
