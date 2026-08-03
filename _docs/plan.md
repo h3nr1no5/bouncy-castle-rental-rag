@@ -4,19 +4,19 @@
 
 - **Domain**: Bouncy Castle rental FAQ
 - **Data**: Existing FAQ CSV file
-- **Retrieval**: Hybrid (keyword + vector search)
-- **Application flow**: Single-turn RAG only  
-  (retrieve context → build prompt → call LLM)
+- **Ingestion**: Automated with dlt into a BM25 + FAISS hybrid index
+- **Retrieval**: Hybrid (keyword + vector search) fused with Reciprocal Rank Fusion (RRF), plus LLM query rewriting (single-turn and history-aware)
+- **Application flow**: Conversational RAG
+  (rewrite query → retrieve context → build prompt → call LLM), with conversation history threaded into the answer and sessions persisted server-side
 - **LLM**: Groq as primary, OpenAI as fallback
-- **Interface**: Streamlit chat UI
+- **Interface**: FastAPI chat API (`app.py`) serving a static web UI (`ui/`)
 - **Evaluation**:  
-  - Retrieval metrics (hit rate, MRR)  
+  - Retrieval metrics (hit rate@k, MRR@k, precision, recall, nDCG)  
   - LLM-as-a-judge relevance scoring  
-  - Small set of manual test questions
+  - Single-turn and multi-turn ground truth sets  
+  - Tuned hyperparameters written to `tuned_params.json`
 - **Feedback & Monitoring**: Postgres + Grafana dashboard (thumbs up/down feedback)
-- **Packaging**: Docker Compose + cloud-deployable
-
-Inspired by: [fitness-assistant](https://github.com/alexeygrigorev/fitness-assistant)
+- **Packaging**: Docker Compose locally, deployed to Render (app + Postgres + Grafana)
 
 ---
 
@@ -34,13 +34,14 @@ Inspired by: [fitness-assistant](https://github.com/alexeygrigorev/fitness-assis
 - Return the answer together with useful metadata (tokens, latency, model used, etc.)
 
 ### 3. Evaluation
-- Create a small ground-truth question set from the FAQ
-- Measure retrieval quality (hit rate / MRR)
+- Create ground-truth question sets from the FAQ (single-turn and multi-turn)
+- Measure retrieval quality (hit rate@k / MRR@k / precision / recall / nDCG)
 - Run LLM-as-a-judge to score answer relevance
+- Tune hyperparameters (RRF k, field weights, rewriting) in the notebook and persist the best settings
 - Keep a handful of manual test questions for quick sanity checks
 
 ### 4. Interface
-- Streamlit chat-style UI
+- FastAPI chat API serving a static web chat UI
 - Question input + answer display
 - Thumbs up / thumbs down feedback buttons
 
@@ -53,7 +54,7 @@ Inspired by: [fitness-assistant](https://github.com/alexeygrigorev/fitness-assis
   - Latency / token usage / estimated cost
 
 ### 6. Packaging & Deployment
-- Docker Compose setup (Streamlit app + Postgres + Grafana)
+- Docker Compose setup (app + Postgres + Grafana)
 - Environment variables for API keys and configuration
 - Designed so the same stack (or a simplified version) can be deployed to cloud platforms (Render, Railway, Fly.io, AWS, etc.)
 
@@ -75,7 +76,8 @@ bouncy-castle-rag/
 │   ├── rag.py             # RAG orchestration
 │   ├── llm.py             # Groq + OpenAI clients
 │   └── db.py              # Postgres logging
-├── app.py                 # Streamlit UI
+├── app.py                 # FastAPI chat backend (serves ui/)
+├── ui/                    # Static chat UI
 ├── evaluation/            # Notebooks or scripts for eval
 ├── grafana/               # Dashboard config
 ├── docker-compose.yaml
