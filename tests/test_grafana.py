@@ -15,6 +15,9 @@ REQUIRED_PANEL_TITLES = [
     "Token usage over time",
     "Estimated cost over time",
     "Model usage",
+    "Requests over time",
+    "Feedback over time",
+    "Latency percentiles",
 ]
 
 REQUIRED_DATASOURCE_FIELDS = {
@@ -51,7 +54,7 @@ class TestDashboardJson:
         titles = {panel["title"] for panel in panels}
         for required in REQUIRED_PANEL_TITLES:
             assert required in titles, f"Missing panel: {required}"
-        assert len(panels) >= 6
+        assert len(panels) >= 9
 
 
 class TestPanels:
@@ -113,6 +116,29 @@ class TestPanels:
         assert panel["type"] == "barchart"
         assert "metadata->>'model'" in sql
         assert "GROUP BY" in sql
+
+    def test_requests_over_time_counts_rows_per_bucket(self, panels):
+        panel = self._panel(panels, "Requests over time")
+        sql = panel["targets"][0]["rawSql"]
+        assert panel["type"] == "timeseries"
+        assert "COUNT(*)" in sql
+        assert "GROUP BY time" in sql
+
+    def test_feedback_over_time_groups_by_feedback_per_bucket(self, panels):
+        panel = self._panel(panels, "Feedback over time")
+        sql = panel["targets"][0]["rawSql"]
+        assert panel["type"] == "timeseries"
+        assert "COALESCE(feedback, 'none')" in sql
+        assert "COUNT(*)" in sql
+        assert "GROUP BY time, feedback" in sql
+
+    def test_latency_percentiles_use_percentile_cont(self, panels):
+        panel = self._panel(panels, "Latency percentiles")
+        sql = panel["targets"][0]["rawSql"]
+        assert panel["type"] == "timeseries"
+        assert "percentile_cont" in sql
+        assert "metadata->>'latency'" in sql
+        assert panel["fieldConfig"]["defaults"]["unit"] == "s"
 
     def test_all_panels_read_only_rag_logs(self, panels):
         for panel in panels:

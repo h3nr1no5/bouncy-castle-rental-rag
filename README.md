@@ -77,6 +77,6 @@ The quick-start above is all you need to run locally. For the longer-form deploy
 
 - **Deployment (Render Blueprint, secrets, index pre-baking, DB fallback, data migration)** — [`_docs/deployment.md`](_docs/deployment.md)
 - **Architecture (hybrid search / RRF re-ranking, LLM provider fallback)** — [`_docs/architecture.md`](_docs/architecture.md)
-- **Monitoring (Grafana runbook, 6-panel dashboard, useful commands)** — [`_docs/monitoring.md`](_docs/monitoring.md)
+- **Monitoring (Grafana runbook, 9-panel dashboard, useful commands)** — [`_docs/monitoring.md`](_docs/monitoring.md)
 
 The in-repo files remain the source of truth: [`render.yaml`](render.yaml), the [`Dockerfile`](Dockerfile), [`grafana/`](grafana/), [`src/search.py`](src/search.py), [`src/llm.py`](src/llm.py).

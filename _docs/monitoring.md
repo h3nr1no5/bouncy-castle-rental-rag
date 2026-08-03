@@ -20,7 +20,7 @@ script) and the task-12 description in `_docs/tasks.md`.
   — a file provider that loads dashboards from `/var/lib/grafana/dashboards`
   (every 10s), with `allowUiUpdates: false` so the dashboard stays file-owned.
 - [`grafana/dashboard.json`](../grafana/dashboard.json) — the **RAG Monitoring**
-  dashboard (uid `rag-monitoring`, refresh 30s) with the 6 panels below.
+  dashboard (uid `rag-monitoring`, refresh 30s) with the 9 panels below.
 - [`grafana/Dockerfile`](../grafana/Dockerfile) — the Grafana image
   (`FROM grafana/grafana:10.4.3`) that copies in the provisioning files, the
   dashboard, and the `DATABASE_URL` entrypoint wrapper
@@ -65,7 +65,7 @@ Open http://localhost:3000 (or the deployed Grafana URL) and log in with
 **`admin`** / **`GF_SECURITY_ADMIN_PASSWORD`** (compose default `admin` from
 `.env` unless `GRAFANA_ADMIN_PASSWORD` is set).
 
-## The 6 dashboard panels
+## The 9 dashboard panels
 
 Every panel reads only from the `rag_logs` table, extracts metrics from the
 JSONB `metadata` column, and filters `created_at` with `$__timeFrom()` /
@@ -83,15 +83,25 @@ JSONB `metadata` column, and filters `created_at` with `$__timeFrom()` /
 5. **Estimated cost over time** — timeseries of `SUM((metadata->>'cost')::numeric)`,
    bucketed hourly (currency USD).
 6. **Model usage** — bar chart counting rows by `metadata->>'model'`.
+7. **Requests over time** — timeseries of `COUNT(*)`, bucketed hourly (request
+   volume).
+8. **Feedback over time** — timeseries of `COUNT(*)` grouped by
+   `COALESCE(feedback, 'none')` per hourly bucket, so up/down/no-feedback
+   trends are visible over time.
+9. **Latency percentiles** — timeseries of `percentile_cont(0.5/0.95/0.99)
+   WITHIN GROUP (ORDER BY (metadata->>'latency')::numeric)` per hourly bucket
+   (unit seconds), surfacing tail latency that the average hides.
 
 Panels render an empty state without errors when `rag_logs` has no rows.
 
 ## Seeding demo data
 
-[`grafana/seed_demo.py`](../grafana/seed_demo.py) inserts 10 deterministic demo
+[`grafana/seed_demo.py`](../grafana/seed_demo.py) inserts 14 deterministic demo
 rows (mixed `up`/`down`/no feedback, Groq + OpenAI models, latency / token /
-cost values) so the panels can be verified. It first deletes any previous rows
-for the demo questions, so re-running stays deterministic:
+cost values) so the panels can be verified. The latency values range from
+~0.9s to ~7.8s, so the p50/p95/p99 percentile lines diverge visibly. It first
+deletes any previous rows for the demo questions, so re-running stays
+deterministic:
 
 ```bash
 uv run python grafana/seed_demo.py
@@ -112,7 +122,7 @@ comes from `.env`).
 
 ## Source of truth
 
-- [`grafana/dashboard.json`](../grafana/dashboard.json) — the dashboard (6 panels)
+- [`grafana/dashboard.json`](../grafana/dashboard.json) — the dashboard (9 panels)
 - [`grafana/provisioning/datasources/postgres.yml`](../grafana/provisioning/datasources/postgres.yml) — datasource
 - [`grafana/provisioning/dashboards/dashboards.yml`](../grafana/provisioning/dashboards/dashboards.yml) — dashboard provider
 - [`grafana/seed_demo.py`](../grafana/seed_demo.py) — demo-data seeding
