@@ -4,5 +4,5 @@
   "cat_weight": 0,
   "bm25_k1": 2.0,
   "bm25_b": 0.75,
-  "rewrite_enabled": false
+  "rewrite_enabled": true
 }

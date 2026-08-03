@@ -157,6 +157,7 @@ class TestAnswerQuestion:
         with (
             patch("src.rag.search", return_value=SAMPLE_CONTEXTS) as mock_search,
             patch("src.rag.ask_llm", return_value=LLM_RESULT),
+            patch("src.rag.load_tuned_params", return_value={"rewrite_enabled": False, "k": 5, "rrf_k": 1, "cat_weight": 0, "bm25_k1": 1.5, "bm25_b": 0.75}),
         ):
             answer_question("booking")
 
@@ -190,6 +191,7 @@ class TestAnswerQuestion:
         with (
             patch("src.rag.search", return_value=SAMPLE_CONTEXTS),
             patch("src.rag.ask_llm", return_value=LLM_RESULT) as mock_llm,
+            patch("src.rag.load_tuned_params", return_value={"rewrite_enabled": False, "k": 5, "rrf_k": 1, "cat_weight": 0, "bm25_k1": 1.5, "bm25_b": 0.75}),
         ):
             answer_question("cost")
 
@@ -204,6 +206,7 @@ class TestAnswerQuestion:
         with (
             patch("src.rag.search", return_value=[]),
             patch("src.rag.ask_llm", return_value=LLM_RESULT) as mock_llm,
+            patch("src.rag.load_tuned_params", return_value={"rewrite_enabled": False, "k": 5, "rrf_k": 1, "cat_weight": 0, "bm25_k1": 1.5, "bm25_b": 0.75}),
         ):
             result = answer_question("unknown topic")
 
@@ -242,6 +245,7 @@ class TestAnswerQuestion:
         with (
             patch("src.rag.search", return_value=SAMPLE_CONTEXTS),
             patch("src.rag.ask_llm", return_value=LLM_RESULT) as mock_llm,
+            patch("src.rag.load_tuned_params", return_value={"rewrite_enabled": False, "k": 5, "rrf_k": 1, "cat_weight": 0, "bm25_k1": 1.5, "bm25_b": 0.75}),
         ):
             answer_question("cost", groq_model="mixtral-8x7b-32768", openai_model="gpt-5.4-mini")
 
