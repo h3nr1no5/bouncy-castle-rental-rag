@@ -154,7 +154,7 @@ def run_canonical_faq_pipeline(
     topics,
     rows,
     destination="duckdb",
-    dataset_name="faq_ingestion",
+    dataset_name="canonical_faq",
     pipeline_name="faq_ingestion",
     db_path=None,
 ):

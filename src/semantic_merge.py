@@ -383,24 +383,127 @@ def semantic_merge(
         - written_rows: List of dicts with Category, Question, Answer that were/would be written
         - discarded_rows: List of extraction-schema rows that were filtered as clause dumps
     """
-    # Use faq_path as-is (None means no existing file)
-    topics = semantic_topics(rows, faq_path, clusterer)
-    written_rows = _extraction_rows_to_faq_rows(topics)
+    topics, written_rows, discarded_rows, _ = semantic_merge_full(
+        rows, faq_path, clusterer, dry_run
+    )
+    return written_rows, discarded_rows
 
-    # Get discarded rows by re-running the gate on all input
+
+def semantic_merge_full(
+    rows: list[dict],
+    faq_path: Optional[pathlib.Path] = None,
+    clusterer: Optional[Clusterer] = None,
+    dry_run: bool = False,
+) -> tuple[list[CanonicalTopic], list[dict], list[dict], list[dict]]:
+    """Run the full semantic merge pipeline and return all intermediate results.
+
+    This is a single-pass helper that runs gate → cluster → canonicalize → apply
+    exactly once, returning the topics, written rows, discarded rows, and the
+    post-gate kept rows (which member_ids index into). This ensures the
+    provenance sidecar and the rewritten faq.csv describe the same topics even
+    when LLM clustering is non-deterministic.
+
+    Args:
+        rows: New extraction-schema rows.
+        faq_path: Path to faq.csv. If None, no existing file is loaded.
+                  Rewritten in place when not dry_run.
+        clusterer: Injectable clusterer (default: default_clusterer()).
+        dry_run: If True, return what would be written without modifying the file.
+
+    Returns:
+        Tuple of (topics, written_rows, discarded_rows, kept_rows) where:
+        - topics: List of CanonicalTopic objects (one per distinct meaning)
+        - written_rows: List of dicts with Category, Question, Answer that were/would be written
+        - discarded_rows: List of extraction-schema rows that were filtered as clause dumps
+        - kept_rows: Post-gate rows that topics.member_ids index into (for provenance)
+    """
+    if clusterer is None:
+        clusterer = default_clusterer()
+
+    # Load existing faq.csv and convert to extraction schema
     existing_faq_rows = _load_faq_rows(faq_path)
     existing_extraction_rows = _faq_rows_to_extraction(existing_faq_rows)
-    all_input_rows = existing_extraction_rows + rows
-    for row in all_input_rows:
+
+    # Normalize question_en fallback for existing rows
+    for row in existing_extraction_rows:
         _normalize_question_en(row)
-    _, discarded_rows = filter_clause_dumps(all_input_rows)
+
+    # Step 1a: Filter clause dumps on existing rows ONLY to build stored canonical map
+    # (gate is pure and deterministic, so result is same as in combined run)
+    kept_existing_rows, _ = filter_clause_dumps(existing_extraction_rows)
+
+    # Build stored_canonical_map: topic_key -> {answer_en, answer_hu} from kept existing rows
+    # These are the verbatim answers from faq.csv that must not be re-folded
+    stored_canonical_map = {}
+    for row in kept_existing_rows:
+        q_en = row.get("question_en", "")
+        if q_en:
+            key = topic_key(q_en)
+            stored_canonical_map[key] = {
+                "answer_en": row.get("answer_en", ""),
+                "answer_hu": row.get("answer_hu", ""),
+            }
+
+    # Combine: existing file rows first (in file order), then new rows (in given order)
+    all_input_rows = existing_extraction_rows + rows
+
+    # Normalize question_en fallback for new rows (existing already done)
+    for row in rows:
+        _normalize_question_en(row)
+
+    # Step 1: Filter clause dumps on all input
+    kept_rows, discarded_rows = filter_clause_dumps(all_input_rows)
+
+    # Step 2: Cluster
+    clusters = clusterer.cluster(kept_rows)
+
+    # Step 3: Canonicalize each cluster, applying existing-canonical-wins
+    canonical_topics = []
+    for cluster in clusters:
+        topic = canonicalize_cluster(cluster, kept_rows)
+        # Existing-canonical-wins: if this topic_key exists in stored map,
+        # use the stored answers verbatim (no re-folding)
+        if topic.topic_key in stored_canonical_map:
+            stored = stored_canonical_map[topic.topic_key]
+            # Replace with stored answers verbatim
+            topic = CanonicalTopic(
+                topic_key=topic.topic_key,
+                question_en=topic.question_en,
+                question_hu=topic.question_hu,
+                answer_en=stored["answer_en"],
+                answer_hu=stored["answer_hu"],
+                category=topic.category,
+                member_ids=topic.member_ids,
+            )
+        canonical_topics.append(topic)
+
+    # Step 4: Deduplicate by topic_key, keeping existing-canonical representative
+    # Existing topics (from faq_path) have priority - their member indices are lower
+    # since existing_extraction_rows come first in all_input_rows
+    seen_keys = {}
+    deduped_topics = []
+    for topic in canonical_topics:
+        key = topic.topic_key
+        if key not in seen_keys:
+            seen_keys[key] = topic
+            deduped_topics.append(topic)
+        # If key already seen, the first one (lower min member index) wins -
+        # this is the existing-canonical-wins behavior
+
+    # Step 5: Order by minimum member input index (already in this order due to
+    # clusterer returning sorted clusters and canonicalize preserving order)
+    # But ensure explicit sort for determinism
+    deduped_topics.sort(key=lambda t: min(t.member_ids) if t.member_ids else float('inf'))
+
+    # Step 6: Convert to faq.csv rows
+    written_rows = _extraction_rows_to_faq_rows(deduped_topics)
 
     if not dry_run:
         if faq_path is None:
             faq_path = DEFAULT_FAQ_PATH
         _write_faq_rows(written_rows, faq_path)
 
-    return written_rows, discarded_rows
+    return deduped_topics, written_rows, discarded_rows, kept_rows
 
 
 if __name__ == "__main__":

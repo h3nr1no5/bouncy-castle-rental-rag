@@ -1,5 +1,6 @@
 import argparse
 import datetime
+import json
 import logging
 import os
 import pathlib
@@ -17,6 +18,8 @@ TOC_DIR = DB_DIR / "toc"
 TOC_EN_DIR = DB_DIR / "toc_en"
 COMPANIES_HU = ROOT / "data" / "companies.json"
 COMPANIES_EN = ROOT / "data" / "companies_en.json"
+FAQ_PATH = ROOT / "data" / "faq.csv"
+CLAUSE_DUMPS_PATH = DB_DIR / "toc" / "clause_dumps.json"
 
 
 def _collect(toc_dir=TOC_DIR, companies_path=None):
@@ -99,12 +102,64 @@ def _build_indexes():
     return paths
 
 
+def _run_semantic_merge(all_extracted_rows, skip_llm=False):
+    """Run the semantic merge stage: gate → cluster → canonicalize → rewrite faq.csv → provenance.
+
+    Args:
+        all_extracted_rows: Combined extraction rows from all tracks (HU + EN)
+        skip_llm: If True, use ExactClusterer (deterministic, no LLM calls)
+
+    Returns:
+        Tuple of (topics, written_rows, discarded_rows, kept_rows)
+    """
+    from src.clusterer import ExactClusterer, default_clusterer
+    from src.pipeline import run_canonical_faq_pipeline
+    from src.semantic_merge import semantic_merge_full
+
+    logger.info("=== Semantic Merge Stage ===")
+
+    # Select clusterer
+    if skip_llm:
+        clusterer = ExactClusterer()
+        logger.info("  Using ExactClusterer (deterministic, no LLM calls)")
+    else:
+        clusterer = default_clusterer()
+        logger.info("  Using LLMClusterer (default)")
+
+    # Run semantic merge (single pass: gate → cluster → canonicalize → apply)
+    topics, written_rows, discarded_rows, kept_rows = semantic_merge_full(
+        rows=all_extracted_rows,
+        faq_path=FAQ_PATH,
+        clusterer=clusterer,
+        dry_run=False,
+    )
+
+    logger.info("  Topics produced: %d", len(topics))
+    logger.info("  Rows written to faq.csv: %d", len(written_rows))
+    logger.info("  Clause dumps discarded: %d", len(discarded_rows))
+
+    # Write audit trail: discarded clause dumps
+    CLAUSE_DUMPS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with open(CLAUSE_DUMPS_PATH, "w", encoding="utf-8") as f:
+        json.dump(discarded_rows, f, ensure_ascii=False, indent=2)
+    logger.info("  Audit trail written to %s (%d rows)", CLAUSE_DUMPS_PATH, len(discarded_rows))
+
+    # Load provenance into duckdb (faq_ingestion dataset)
+    # This runs whenever the semantic stage runs, not gated on --pipeline
+    logger.info("  Loading provenance into db/faq_ingestion.duckdb...")
+    pipeline, info = run_canonical_faq_pipeline(topics, kept_rows)
+    logger.info("  Provenance load complete: %s", info)
+
+    return topics, written_rows, discarded_rows, kept_rows
+
+
 def main():
     parser = argparse.ArgumentParser(description="Bilingual T&C ingestion pipeline")
     parser.add_argument("--pipeline", action="store_true", help="also load into duckdb 'toc' dataset via dlt")
     parser.add_argument("--skip-llm", action="store_true", help="use only cached extractions (no LLM calls)")
     parser.add_argument("--hu", action="store_true", help="run only the Hungarian track")
     parser.add_argument("--en", action="store_true", help="run only the English track")
+    parser.add_argument("--semantic", action="store_true", help="run semantic merge stage (default: on)")
     args = parser.parse_args()
 
     tracks = []
@@ -115,13 +170,60 @@ def main():
     else:
         tracks = ["hu", "en"]
 
+    # Collect all extracted rows from all tracks
+    all_extracted_rows = []
     for lang in tracks:
-        _run_track(lang, skip_llm=args.skip_llm, to_dlt=args.pipeline)
+        extracted_rows = _run_track_collect_only(lang, skip_llm=args.skip_llm, to_dlt=args.pipeline)
+        if extracted_rows:
+            all_extracted_rows.extend(extracted_rows)
+
+    # Run semantic merge stage (default on, --semantic flag accepted for explicitness)
+    _run_semantic_merge(all_extracted_rows, skip_llm=args.skip_llm)
 
     _build_indexes()
 
 
+def _run_track_collect_only(lang, skip_llm=False, to_dlt=False):
+    """Run a single track (collect -> parse -> extract) and return extracted rows.
+    
+    Does NOT merge into faq.csv - that's done by the semantic merge stage.
+    """
+    if lang == "en":
+        toc_dir, companies_path, extract_fn, cached_only_fn = (
+            TOC_EN_DIR, COMPANIES_EN, _extract_en, _cached_only_en
+        )
+    else:
+        toc_dir, companies_path, extract_fn, cached_only_fn = (
+            TOC_DIR, COMPANIES_HU, _extract, _cached_only
+        )
+
+    logger.info("=== Track: %s ===", lang.upper())
+    ok_results, any_ok = _collect(toc_dir=toc_dir, companies_path=companies_path)
+    if not any_ok:
+        logger.error("[%s] All sources failed to collect; aborting this track.", lang)
+        return []
+
+    chunks = _parse(ok_results)
+    logger.info("[%s] Total chunks: %d", lang, len(chunks))
+
+    if skip_llm:
+        extracted_rows = cached_only_fn(chunks, toc_dir=toc_dir)
+    else:
+        extracted_rows = extract_fn(chunks, toc_dir=toc_dir)
+
+    if not extracted_rows:
+        logger.warning("[%s] No extractions produced any rows.", lang)
+
+    # Still load into dlt if requested (legacy toc dataset)
+    if to_dlt:
+        _load_into_dlt(chunks, extracted_rows, lang=lang)
+
+    logger.info("[%s] Done. extracted_rows=%d", lang, len(extracted_rows))
+    return extracted_rows
+
+
 def _run_track(lang, skip_llm=False, to_dlt=False):
+    """Legacy track runner that includes merge (kept for backward compatibility)."""
     if lang == "en":
         toc_dir, companies_path, extract_fn, merge_fn, cached_only_fn = (
             TOC_EN_DIR, COMPANIES_EN, _extract_en, _merge_en, _cached_only_en
