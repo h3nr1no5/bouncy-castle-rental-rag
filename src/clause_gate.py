@@ -53,12 +53,14 @@ def _count_sentence_terminators(text: str) -> int:
         pattern = re.compile(re.escape(abbr) + r"(?=\s|$)", re.IGNORECASE)
         protected = pattern.sub(abbr[:-1] + "\u200B", protected)
 
-    # Find all terminator positions: . ! ? followed by whitespace or end of string
+    # Find all terminator positions: . ! ? followed by optional closing quote
+    # (ASCII " ' or Unicode " " ' ') then whitespace or end of string.
     # This regex naturally handles consecutive terminators correctly:
     # - "..." -> only the last . is followed by whitespace/end, so 1 match
     # - "?! " -> only the ! is followed by whitespace, so 1 match
     # - ". . " -> both . are followed by whitespace, so 2 matches
-    terminator_pattern = re.compile(r"[.!?](?=\s|$)")
+    # - '." ' or '?" ' -> terminator followed by quote then whitespace counts as 1
+    terminator_pattern = re.compile(r"[.!?](?=[\"'\u2018\u2019\u201c\u201d]?(?:\s|$))")
     matches = list(terminator_pattern.finditer(protected))
 
     return len(matches)

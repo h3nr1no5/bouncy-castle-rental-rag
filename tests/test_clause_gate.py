@@ -209,3 +209,44 @@ def test_filter_clause_dumps_preserves_objects():
 
     # Check that original list is unchanged
     assert rows == [original_row]
+
+
+def test_is_clause_dump_terminator_before_closing_quote():
+    """Terminator followed by closing quote counts as sentence boundary."""
+    # Two sentences, second ends with ." (period then quote)
+    # 120 + 2 + 120 + 2 = 244 chars (>200), 2 terminators
+    text = "A" * 120 + ". " + "B" * 120 + '."'
+    assert len(text) == 244
+    assert is_clause_dump(text) is True
+
+    # Same with ?" (question mark then quote)
+    text = "A" * 120 + "? " + "B" * 120 + '?"'
+    assert len(text) == 244
+    assert is_clause_dump(text) is True
+
+    # Same with !" (exclamation then quote)
+    text = "A" * 120 + "! " + "B" * 120 + '!"'
+    assert len(text) == 244
+    assert is_clause_dump(text) is True
+
+    # Single sentence ending with ." should NOT be a dump
+    text = "A" * 250 + '."'
+    assert is_clause_dump(text) is False
+
+    # Terminator followed by single quote
+    text = "A" * 120 + ". " + "B" * 120 + ".'"
+    assert is_clause_dump(text) is True
+
+    # Terminator followed by quote then whitespace
+    text = "A" * 120 + '. " ' + "B" * 120 + "."
+    assert is_clause_dump(text) is True
+
+    # Unicode smart quotes (U+201C/U+201D for double, U+2018/U+2019 for single)
+    text = "A" * 120 + ". " + "B" * 120 + ".\u201d"  # .”
+    assert is_clause_dump(text) is True
+    text = "A" * 120 + "? " + "B" * 120 + "?\u201d"  # ?”
+    assert is_clause_dump(text) is True
+    text = "A" * 120 + "! " + "B" * 120 + "!\u201d"  # !”
+    assert is_clause_dump(text) is True
+    text = "A" * 120 + ". " + "B" * 120 + ".\u2019"  # .’
+    assert is_clause_dump(text) is True
