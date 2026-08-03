@@ -96,7 +96,8 @@ class TestChat:
         assert resp.json()["answer"] == LLM_RESULT["response"]
 
         # The final answer call (last ask_llm call) must include the history.
-        # (rewrite_enabled is true in tuned_params.json, so there may be a rewrite call first.)
+        # (history_rewrite_enabled is true in tuned_params.json, so with history
+        # present the first LLM call is the multi-turn rewrite.)
         _, kwargs = mock_llm.call_args_list[-1]
         assert "User: Do you rent bouncy castles?" in kwargs["system_prompt"]
         assert "Assistant: Yes, we do." in kwargs["system_prompt"]
