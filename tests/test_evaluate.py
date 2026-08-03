@@ -138,3 +138,76 @@ def test_load_ground_truth_from_csv(tmp_path):
 def test_load_ground_truth_missing_file():
     with pytest.raises(FileNotFoundError):
         load_ground_truth("/nonexistent/path.csv")
+
+
+# ---------------------------------------------------------------------------
+# evaluate_retrieval: multi-relevant-id items
+# ---------------------------------------------------------------------------
+
+def test_evaluate_retrieval_multi_relevant_ids():
+    ground_truth = [
+        {"question": "q1", "document_ids": ["faq_0", "faq_1"]},
+        {"question": "q2", "document_ids": ["faq_5", "faq_6"]},
+    ]
+
+    def fake_search(query, k=5, **kwargs):
+        if query == "q1":
+            return [{"id": "faq_3"}, {"id": "faq_0"}]  # faq_0 at rank 2
+        return [{"id": "faq_9"}]
+
+    report = evaluate_retrieval(ground_truth=ground_truth, k=5, search_fn=fake_search)
+
+    # Hit if ANY relevant id is retrieved; MRR from the best rank among them.
+    assert report["details"][0]["hit"] is True
+    assert report["details"][0]["mrr"] == pytest.approx(0.5)
+    assert report["details"][1]["hit"] is False
+    assert report["details"][1]["mrr"] == 0.0
+    assert report["hit_rate"] == pytest.approx(0.5)
+    assert report["mrr"] == pytest.approx(0.25)
+    assert report["n"] == 2
+
+
+def test_evaluate_retrieval_document_id_as_list():
+    ground_truth = [{"question": "q", "document_id": ["faq_0", "faq_1"]}]
+
+    def fake_search(query, k=5, **kwargs):
+        return [{"id": "faq_1"}, {"id": "faq_0"}]
+
+    report = evaluate_retrieval(ground_truth=ground_truth, k=5, search_fn=fake_search)
+    assert report["details"][0]["hit"] is True
+    assert report["details"][0]["mrr"] == pytest.approx(1.0)
+    assert report["details"][0]["document_id"] == ["faq_0", "faq_1"]
+
+
+def test_evaluate_retrieval_best_rank_among_relevant_ids():
+    ground_truth = [{"question": "q", "document_ids": ["faq_2", "faq_0"]}]
+
+    def fake_search(query, k=5, **kwargs):
+        return [{"id": "faq_1"}, {"id": "faq_2"}, {"id": "faq_0"}]
+
+    report = evaluate_retrieval(ground_truth=ground_truth, k=5, search_fn=fake_search)
+    # faq_2 at rank 2 is the best rank among the two relevant ids.
+    assert report["details"][0]["hit"] is True
+    assert report["details"][0]["mrr"] == pytest.approx(0.5)
+
+
+def test_evaluate_retrieval_single_document_id_regression():
+    # Single document_id items must produce results identical to the previous
+    # [item["document_id"]] behaviour.
+    ground_truth = [
+        {"question": "q1", "document_id": "faq_0"},
+        {"question": "q2", "document_id": "faq_5"},
+    ]
+
+    def fake_search(query, k=5, **kwargs):
+        if query == "q1":
+            return [{"id": "faq_0"}, {"id": "faq_1"}]
+        return [{"id": "faq_9"}]
+
+    report = evaluate_retrieval(ground_truth=ground_truth, k=5, search_fn=fake_search)
+    assert report["details"][0]["hit"] is True
+    assert report["details"][0]["mrr"] == pytest.approx(1.0)
+    assert report["details"][1]["hit"] is False
+    assert report["details"][1]["mrr"] == 0.0
+    assert report["hit_rate"] == pytest.approx(0.5)
+    assert report["mrr"] == pytest.approx(0.5)

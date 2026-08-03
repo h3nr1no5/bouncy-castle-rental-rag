@@ -297,10 +297,11 @@ def test_generated_file_loads_through_multi_turn_loader(tmp_path):
     gen.write_csv(out, rows)
 
     loaded = load_multi_turn_ground_truth(path=out)
-    assert len(loaded) == 2
-    assert loaded[0]["question"] == "How much for a weekend?"
-    assert loaded[0]["document_id"] == "faq_36"
-    assert loaded[0]["history"] == [
+    assert len(loaded["items"]) == 2
+    assert loaded["skipped"] == 0
+    assert loaded["items"][0]["question"] == "How much for a weekend?"
+    assert loaded["items"][0]["document_id"] == "faq_36"
+    assert loaded["items"][0]["history"] == [
         {"role": "user", "content": "Do you rent bouncy castles?"},
         {"role": "user", "content": "For a weekend?"},
     ]

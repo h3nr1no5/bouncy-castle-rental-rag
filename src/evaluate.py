@@ -32,6 +32,23 @@ def compute_mrr(results, relevant_ids, k=None):
     return 0.0
 
 
+def _item_relevant_ids(item):
+    """Return the list of relevant document ids for a ground-truth item.
+
+    Supports a single ``document_id`` (string or list) and an explicit
+    ``document_ids`` list, so an item answerable by more than one FAQ entry is
+    scored fairly: hit if ANY relevant id is retrieved, MRR from the best rank
+    among them. Items carrying a single ``document_id`` behave exactly as
+    before.
+    """
+    ids = item.get("document_ids", item.get("document_id"))
+    if ids is None:
+        raise KeyError("ground-truth item has neither 'document_id' nor 'document_ids'")
+    if isinstance(ids, str):
+        return [ids]
+    return list(ids)
+
+
 def evaluate_retrieval(ground_truth=None, k=5, search_fn=None, **kwargs):
     if ground_truth is None:
         ground_truth = load_ground_truth()
@@ -46,7 +63,7 @@ def evaluate_retrieval(ground_truth=None, k=5, search_fn=None, **kwargs):
 
     for item in tqdm(ground_truth, desc="Retrieval"):
         results = search_fn(item["question"], k=k, **kwargs)
-        relevant_ids = [item["document_id"]]
+        relevant_ids = _item_relevant_ids(item)
         hr = compute_hit_rate(results, relevant_ids, k=k)
         m = compute_mrr(results, relevant_ids, k=k)
         hit_rates.append(hr)
@@ -55,7 +72,7 @@ def evaluate_retrieval(ground_truth=None, k=5, search_fn=None, **kwargs):
             "question": item["question"],
             "hit": hr == 1.0,
             "mrr": round(m, 4),
-            "document_id": item["document_id"],
+            "document_id": item.get("document_id", item.get("document_ids")),
             "retrieved_ids": [r["id"] for r in results],
         })
 
