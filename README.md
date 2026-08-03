@@ -2,6 +2,8 @@
 
 RAG system over a bouncy castle rental FAQ, using hybrid search (BM25 + FAISS) with Groq (primary) and OpenAI (fallback).
 
+> **Note on re-ranking:** document re-ranking is already implemented as part of the hybrid search. `search()` in `src/search.py` fuses the BM25 and FAISS rankings with **Reciprocal Rank Fusion (RRF)** — each document scores `1 / (rank + rrf_k)` per retriever, summed across retrievers, then sorted descending. The tuned default (`tuned_params.json`) is `rrf_k = 1`, which is the best value from the `rrf_k` sweep in `exploration.ipynb` (MRR@5 = 0.835 at `rrf_k = 1`, declining to 0.825–0.829 at 5–60). It is evaluated against non-reranked baselines in `exploration.ipynb` (hybrid hit rate@5 = 0.956 vs. keyword-only 0.756). See Task 19 in `_docs/tasks.md`.
+
 ## Quick start
 
 ### Prerequisites
