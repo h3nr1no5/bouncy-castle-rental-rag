@@ -18,9 +18,9 @@ Provide a `load_faqs()` function in `src/faqs.py` that reads `data/faq.csv`, str
 
 - [x] `src/faqs.py` exports `load_faqs()` returning `list[dict[str, str]]` with keys `Category`, `Question`, `Answer`
 - [x] CSV cell values have leading/trailing whitespace stripped
-- [x] A `python -m src.faqs` entry point prints `Rows: 42` and the column names
+- [x] A `python -m src.faqs` entry point prints `Rows: 41` and the column names
 - [x] `tests/test_faqs.py` verifies:
-  - the CSV is non-empty (42 rows)
+  - the CSV is non-empty (41 rows)
   - every row has all three non-empty string keys
   - `load_faqs()` raises `FileNotFoundError` with a clear message when the CSV is missing
 - [x] The CSV path defaults to `<project_root>/data/faq.csv` and is overridable via an optional `path` argument
@@ -74,8 +74,8 @@ An `exploration.ipynb` notebook at the project root that demonstrates every func
 - [x] `exploration.ipynb` exists at the project root
 - [x] Notebook cells are preceded by markdown explaining what each cell does and why
 - [x] Section 1 — Setup: imports from `src.faqs`, `src.pipeline`, `src.ingest`, `src.search`; create a `db/` working directory
-- [x] Section 2 — Load FAQ Data: calls `load_faqs()`, prints row count (42), displays 3 sample rows, shows column-level missing-value stats
-- [x] Section 3 — dlt Pipeline: runs `run_pipeline()` into `db/test_faq.duckdb`, queries the loaded table with `duckdb`, re-runs the pipeline and confirms the row count stays the same (idempotency)
+- [x] Section 2 — Load FAQ Data: calls `load_faqs()`, prints row count (41), displays 3 sample rows, shows column-level missing-value stats
+- [x] Section 3 — dlt Pipeline: runs `run_pipeline()` into `db/faq_ingestion.duckdb`, queries the loaded table with `duckdb`, re-runs the pipeline and confirms the row count stays the same (idempotency)
 - [x] Section 4 — Build Indexes: calls `build_indexes(force=True)` with all paths under `db/`, inspects the BM25 pickle count, FAISS index dimensions (ntotal, d), and docs JSON structure
 - [x] Section 5 — Hybrid Search: calls `search()` with at least three different queries (e.g. "booking", "cost", "safety"), prints ranked results with RRF scores, demonstrates `k=1` vs `k=5` and an empty-query edge case
 - [x] Section 6 — Cleanup (optional): skipped — `db/` is persistent; remove manually if desired
@@ -246,7 +246,7 @@ Replace the manually written `data/ground_truth.json` with a script that uses an
 ### Acceptance criteria
 
 - [x] `generate_ground_truth.py` exists at project root and is runnable via `uv run python generate_ground_truth.py`
-- [x] It loads all 42 FAQs from `data/faq.csv` via `src.faqs.load_faqs()`
+- [x] It loads all 41 FAQs from `data/faq.csv` via `src.faqs.load_faqs()`
 - [x] Uses OpenAI **structured output** (`client.responses.parse()` with Pydantic `Questions` model) — not `ask_llm()`
 - [x] Model: `gpt-5.4-mini`, with pricing displayed after run ($0.75/M input, $4.50/M output)
 - [x] Retry logic with exponential backoff on API errors
@@ -650,3 +650,91 @@ Render builds the app image straight from the existing `Dockerfile` and injects 
 - Neon free tier: 0.5GB storage, scale-to-zero (compute suspends after ~5 min idle; data never pauses)
 - Render services deploy in a US region (`region: oregon` in `render.yaml`) so the app's outbound IP to Groq is US-based; Groq does not IP-allowlist but rejects unsupported regions
 - On Render only `GROQ_API_KEY` is set (no `OPENAI_API_KEY`); `ask_llm()` in `src/llm.py` returns on a successful Groq call, so chat works without OpenAI. If Groq fails while OpenAI is unset, `/api/chat` returns 502 (the fallback chain requires `OPENAI_API_KEY`)
+
+---
+
+## 19. Document re-ranking
+
+### Goal
+
+Re-order the retrieved documents by a better relevance score than plain cosine similarity / keyword ranking, using Reciprocal Rank Fusion (RRF) as taught in the course, so the most relevant FAQ entry surfaces within the top-k. Evaluate whether reranking improves hit rate@k and MRR@k over the non-reranked baseline and confirm the better approach is used.
+
+### Description
+
+Follow the course lesson on document reranking (<https://github.com/DataTalksClub/llm-zoomcamp/blob/main/06-best-practices/lessons/03-reranking.md>). Reranking re-orders retrieved documents by combining the rankings from multiple search methods (vector, keyword) into a single score:
+
+```text
+RRF(d) = sum(1 / (k + rank(d))) for each ranking
+```
+
+with `compute_rrf(rank, k=60) = 1 / (k + rank)`, summing the per-ranking scores for each document and sorting descending.
+
+This project already applies this pattern in `search()` (`src/search.py`) — Task 5 implemented hybrid retrieval by fusing BM25 + FAISS with RRF, and the tuned `rrf_k=1` is the production default. This task therefore focuses on demonstrating and evaluating RRF as the reranking step, matching the lesson's evaluation (ground truth + hit rate/MRR), and on verifying that the reranked (fused) approach beats the non-reranked baselines.
+
+### Acceptance criteria
+
+- [ ] RRF reranking is implemented per the lesson: run the vector (FAISS) and keyword (BM25) searches separately, compute `compute_rrf(rank, k) = 1 / (k + rank)` for each result set, sum scores per document, and sort descending to produce the final top-k
+- [ ] The reranking is applied at the end of the search pipeline (after initial retrieval) — `search()` returns the reranked top-k (already the case since Task 5; verify and keep it)
+- [ ] The reranked (hybrid + RRF) results are evaluated against the ground-truth set (`data/ground_truth.csv`) with `evaluate_retrieval(search_fn=…)`, reporting hit rate@k and MRR@k
+- [ ] At least one non-reranked baseline is evaluated for comparison (e.g. vector-only or keyword-only ranking without fusion), and the side-by-side shows whether RRF improves both metrics
+- [ ] The better approach is used as the production default (confirm `tuned_params.json` `rrf_k` reflects the best setting)
+- [ ] Notebook cells demonstrate the reranking scores and the before/after metrics (following the pattern of tasks 16–17)
+- [ ] All cells run top-to-bottom without errors
+- [ ] `uv run pytest` still passes
+
+### Out of scope
+
+- Cross-encoder or LLM-based rerankers (not covered by this course approach)
+- Changes to the BM25/FAISS index building
+- Query rewriting or any pre-retrieval step (separate task)
+- Deployment, monitoring, or UI changes
+
+### Constraints
+
+- RRF is the reranking method — implement exactly the `compute_rrf(rank, k) = 1 / (k + rank)` formula from the lesson
+- Reranking must not increase the number of FAQ entries sent to the LLM prompt beyond the current `k`
+- Reuse the existing `search()` RRF fusion; do not fork or reimplement BM25/FAISS
+- Sequential run assumed: sections 1–5 must have already built the indexes in `db/`
+- No new dependencies without asking
+
+---
+
+## 20. User query rewriting
+
+### Goal
+
+Reformulate the user's raw question into a better search query with an LLM before retrieval, so hybrid search surfaces more relevant FAQ entries. Evaluate the rewritten-query pipeline against the raw-query baseline (hit rate@k / MRR@k) and make the better approach the production default.
+
+### Description
+
+User query rewriting is technique #4 from the course's best-practices module (<https://github.com/DataTalksClub/llm-zoomcamp/blob/main/06-best-practices/lessons/01-intro.md>): "use an LLM to reformulate the user's question into a better search query". It is a pre-retrieval step — the rewritten query (not the raw question) is what gets tokenized for BM25 and embedded for FAISS.
+
+Today the raw question flows straight into retrieval: `answer_question()` calls `search(question, …)` directly (`src/rag.py:35`), which tokenizes/embeds it as-is (`src/search.py:58-65`). A rewrite step slots in between: LLM rewrites the question, then the rewritten query is passed to the existing `search()`. This is the missing "User query rewriting" best-practices criterion in `_docs/project-evaluation.md:43` (1 point).
+
+### Acceptance criteria
+
+- [ ] An LLM-based query rewrite function (using the existing `ask_llm()` in `src/llm.py`, Groq + OpenAI fallback) that reformulates the user's question into a search-friendly query, e.g. expanding abbreviations/synonyms, adding domain vocabulary, and normalising phrasing
+- [ ] Retrieval runs on the rewritten query via the existing `search()`, with the raw question still sent to the LLM prompt for the final answer
+- [ ] Rewriting degrades safely: if the rewrite call fails or returns empty, fall back to the original question
+- [ ] Both pipelines are evaluated against `data/ground_truth.csv` with `evaluate_retrieval(search_fn=…)` (`src/evaluate.py:35`), reporting hit rate@k and MRR@k
+- [ ] A side-by-side comparison shows whether rewriting improves both metrics over the raw-query baseline
+- [ ] The better approach is used as the production default
+- [ ] The rewrite step is wired into `answer_question()` (`src/rag.py`) so the chat UI uses it
+- [ ] Notebook cells demonstrate the rewritten queries and the before/after metrics (following the pattern of tasks 16–17)
+- [ ] All cells run top-to-bottom without errors
+- [ ] `uv run pytest` still passes
+
+### Out of scope
+
+- Cross-encoder or LLM-based rerankers (task 19 covers RRF reranking)
+- Changes to the BM25/FAISS index building
+- Hybrid search or RRF changes (task 5)
+- History-aware / multi-turn query rewriting for conversational chat
+- Deployment, monitoring, or UI changes beyond wiring the rewrite into the pipeline
+
+### Constraints
+
+- Rewriting is the only pre-retrieval step; do not add other pre-retrieval processing
+- Reuse the existing `search()` and `ask_llm()`; do not fork or reimplement retrieval or the LLM client
+- The rewrite must not increase the number of FAQ entries sent to the LLM prompt beyond the current `k`
+- No new dependencies without asking

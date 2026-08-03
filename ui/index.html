@@ -181,6 +181,59 @@
   const form = document.getElementById("chat-form");
   const input = document.getElementById("question-input");
   const sendBtn = document.getElementById("send-btn");
+  var historyTurns = [];
+
+  function generateSessionId() {
+    if (window.crypto && typeof window.crypto.randomUUID === "function") {
+      return window.crypto.randomUUID();
+    }
+    // Fallback UUID v4 for older browsers.
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+      var r = (Math.random() * 16) | 0;
+      var v = c === "x" ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
+  }
+
+  var sessionId = null;
+
+  function loadSessionId() {
+    if (sessionId) return sessionId;
+    try {
+      var stored = window.localStorage.getItem("session_id");
+      if (stored) {
+        sessionId = stored;
+        return sessionId;
+      }
+      sessionId = generateSessionId();
+      window.localStorage.setItem("session_id", sessionId);
+    } catch (e) {
+      // localStorage unavailable (e.g. private browsing): keep an in-memory
+      // id so the page still works; the conversation just won't survive a reload.
+      sessionId = generateSessionId();
+    }
+    return sessionId;
+  }
+
+  function restoreHistory() {
+    loadSessionId();
+    return fetch("/api/chat/" + encodeURIComponent(sessionId) + "/history")
+      .then(function (resp) {
+        return resp.json();
+      })
+      .then(function (turns) {
+        if (!Array.isArray(turns)) return;
+        turns.forEach(function (turn) {
+          if (!turn || typeof turn.content !== "string") return;
+          if (turn.role !== "user" && turn.role !== "assistant") return;
+          historyTurns.push({ role: turn.role, content: turn.content });
+          addMessage(turn.role, turn.content);
+        });
+      })
+      .catch(function () {
+        // Restore is best-effort; a failed fetch must not break the chat.
+      });
+  }
 
   function addMessage(kind, text) {
     const wrap = document.createElement("div");
@@ -362,10 +415,12 @@
     setBusy(true);
     showTypingIndicator();
 
+    var history = historyTurns.slice();
+
     fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question: question }),
+      body: JSON.stringify({ question: question, history: history, session_id: loadSessionId() }),
     })
       .then(function (resp) {
         return resp.json().then(function (data) {
@@ -373,8 +428,11 @@
         });
       })
       .then(function ({ ok, data }) {
-        if (ok) renderAssistant(data);
-        else renderError(data);
+        if (ok) {
+          historyTurns.push({ role: "user", content: question });
+          historyTurns.push({ role: "assistant", content: data.answer });
+          renderAssistant(data);
+        } else renderError(data);
       })
       .catch(function () {
         renderError({ detail: "Network error: could not reach the server. Please try again." });
@@ -384,6 +442,8 @@
         setBusy(false);
       });
   });
+
+  restoreHistory();
 })();
 </script>
 </body>

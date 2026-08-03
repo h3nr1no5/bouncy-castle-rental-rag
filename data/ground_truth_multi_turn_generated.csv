@@ -1,0 +1,206 @@
+conversation_id,prior_user_turns,follow_up_question,document_id
+1,We're planning my son's birthday party and want to lock in a date.;It's probably going to be on a Saturday in June.,How soon should I get this set up?,faq_0
+2,Do you still have any openings for next spring?;We're just starting to compare a few options.,How early should I reserve mine?,faq_0
+3,"We haven't picked the exact day yet, but we're aiming for a holiday weekend.;I don't want to miss out if spots go fast.",How far ahead do people usually take care of it?,faq_0
+4,I'm helping organize a school field day.;We may need to hold a date before the PTA meeting.,Can I put this on the calendar well ahead of time?,faq_0
+5,We're thinking about a backyard party later this year.;The date is flexible right now.,When should I get in touch about it?,faq_0
+6,"Hi, I’m looking at booking for my son’s birthday next month.;Do you usually hold dates without payment?","So for that date, is one needed?",faq_1
+7,"We’re comparing a couple of weekend options.;If we pick one, what do we need to pay up front?","And for this one, is a deposit part of it?",faq_1
+8,I have an event on Saturday afternoon.;I just want to make sure I can lock it in early.,Can I secure it without putting anything down?,faq_1
+9,We’re planning a school fundraiser in June.;I’m trying to figure out the booking steps.,"Before it’s reserved, do we need to pay anything now?",faq_1
+10,"I found one that looks perfect for our garden party.;The date is still open, I think.","To keep that slot, does anything need to be paid first?",faq_1
+11,I’m thinking about reserving a castle for my son’s birthday.;Do you need a deposit up front?,And what do you take for the rest?,faq_2
+12,We’re planning a backyard party next month.;I want to make sure I can pay in a way that works for us.,What options do you usually accept?,faq_2
+13,Can I book one for Saturday?;I’m trying to sort out the money part first.,Which ways can I send it?,faq_2
+14,I’m comparing a couple of rental places.;Some of them are a bit picky about payment.,What are they usually okay with?,faq_2
+15,I might reserve one for a school event.;Our office sometimes pays differently depending on the vendor.,How can we handle the payment on this one?,faq_2
+16,I'm looking at a bounce house for my son's birthday.;We might need it for Friday through Sunday.,Do you have anything better for that longer stretch?,faq_3
+17,We're planning a neighborhood party next month.;It may run all weekend if the weather is good.;I'd like to keep the cost down.,Is there a better rate for the whole thing?,faq_3
+18,I need a unit for a school fundraiser.;Possibly Monday to Wednesday.;Are there any special pricing options?,What about for those extra days?,faq_3
+19,We're comparing a couple rental companies.;Our event could start Friday and end Monday.;It might be during a slower part of the season.,Can you do anything on the price for that?,faq_3
+20,We may want it for two or three days.;The dates are still flexible.;I'm just trying to see what makes sense financially.,Would there be a better deal on that setup?,faq_3
+21,I booked with you last year and my sister is looking for a castle too.;Is there any kind of discount if she books because I sent her?,Would that credit carry over to my next booking?,faq_4
+22,"We are planning a few parties this summer.;If I bring in another customer, is there anything for that?",How does that work for future bookings?,faq_4
+23,"My neighbor asked who we used for the birthday setup.;If she rents from you, do I get anything out of it?",Can I use it on a later order?,faq_4
+24,I might recommend you to a couple of friends.;I am just wondering if there is some sort of reward for that.,What happens with it when I book again?,faq_4
+25,I am setting up for my kids birthday and might send a few people your way.;Do you ever give customers anything for referrals?,Could that be applied to another rental later?,faq_4
+26,"We’re looking at a party next month and want to save a date.;If plans change, what happens with the booking?","And if we need to back out later, how does that work?",faq_5
+27,I’m comparing a few weekend options for my kid’s birthday.;Can I make a reservation now and sort the details later?,"Also, if we end up not using it, what’s the policy for that?",faq_5
+28,We might do the event outdoors if the weather cooperates.;I’m trying to figure out the safest date to lock in.,"If we have to change our minds after booking, what applies?",faq_5
+29,Can you hold the date for a school fundraiser?;I’m just checking the steps before I send anything over.,"If the event gets canceled, what happens to it all?",faq_5
+30,I’m narrowing down our spring weekend plans.;I’ll probably pay a deposit once we decide.,"And if we need to drop it later, what would be charged?",faq_5
+31,I'm looking at booking for Saturday.;It's for a backyard party and we need to know the backup plan if the forecast turns ugly.,"If that happens, what usually gets refunded?",faq_6
+32,Can we lock in a date next month?;We are trying to plan around the weather just in case.,"And if the day ends up being a washout, what do most places do?",faq_6
+33,We have a school event coming up.;I'm worried about the wind where we are.,"If it gets too rough out there, what happens with the booking?",faq_6
+34,I want to reserve one for my son's birthday.;We might need to move things if the weather goes sideways.,"Would they let us switch it to another day, or is it cancelled?",faq_6
+35,Do you set up in all weather?;We are checking because the area can get storms quickly.,"So when it's unsafe, what do they normally do with the payment?",faq_6
+36,I’m booking for Saturday afternoon.;What happens if the forecast looks bad?,"If it turns ugly, how much notice do I need to give for that?",faq_7
+37,We have a backyard party next month.;I’m worried about a storm rolling in.,Can I back out at the last minute if the weather goes bad?,faq_7
+38,I’m comparing a couple of rental options.;Our event is outdoors so I need to know the rules.,What’s the notice on that if the sky turns nasty?,faq_7
+39,The setup is for my kid’s birthday.;I’m checking the plan in case it pours.,"If we need to cancel for that reason, how far ahead should I tell you?",faq_7
+40,Can I reserve one for Sunday?;I just want to be prepared if the weather is awful.,How much warning do you usually need for that?,faq_7
+41,We’re looking at booking one for a backyard party.;Our yard isn’t huge and I’m trying to see if it will fit.;Do I need extra room around it?,How much space do I need?,faq_8
+42,I have a spot picked out near the patio.;It looks close on the picture but I’m not sure.;What about around it?,How much space do I need?,faq_8
+43,We’re comparing a couple of options for the event.;One of them is pretty large.;Will there need to be space on the sides too?,How much space do I need?,faq_8
+44,"I’m measuring the garden before I confirm anything.;The main area seems fine, but I want to be safe.;How much breathing room should I leave?",How much space do I need?,faq_8
+45,The school field is available for our party.;I need to know if the setup area is enough.;What should I check for around it?,How much space do I need?,faq_8
+46,"We're looking at the backyard option for Saturday.;It'll be close to the patio, if that helps.",What do we need nearby for that?,faq_9
+47,I want to make sure the setup area works for us.;The only outlet I know of is by the garage.,"Is that far enough, or does it need to be closer?",faq_9
+48,Can you deliver to the park lot near our event?;We probably won't have anything set up there yet.,"If there's nothing there, what do we do about it?",faq_9
+49,"We're comparing a couple of spaces for the party.;One spot has an outlet, but I'm not sure what kind it is.","Does it need a specific kind, or will any one work?",faq_9
+50,I'm trying to figure out the prep for the rental.;The setup spot is on the other side of the yard from the house.,How close does the plug need to be?,faq_9
+51,"We’re planning a backyard party next month.;The yard is pretty small, so I’m checking what would work.",Could you use it on that surface or would we need something else?,faq_10
+52,I’m renting for my son’s birthday.;The party space is behind our building.,"Can it go there, or is that not okay?",faq_10
+53,We’re comparing a few places for the event.;One option is the school parking lot.,Would that kind of spot work for it?,faq_10
+54,I might put it in the garage if the weather turns bad.;Otherwise it would be out on the driveway.,Is either of those fine for setting it up?,faq_10
+55,We have a community event coming up.;The only open area is a paved section by the playground.,"Can it be placed on that, or does it need a different spot?",faq_10
+56,"We have a party next month and I want to make sure the spot in the yard works.;It’s kind of uneven back there and there are a few low branches.;If they can’t put it there, what happens to the payment?","And if that area turns out to be a no-go, do I get it back?",faq_11
+57,"I’m comparing a couple of rental companies for our event.;Our space is a bit tight and the power lines run low near the setup area.;If they show up and can’t use that spot, what then?","So if that happens, is the booking money returned?",faq_11
+58,"I’m booking for my son’s birthday and checking the driveway first.;There’s a sloped area and one side is harder to reach.;If they can’t get everything placed there safely, do I lose anything?","What if they can’t do it because of that, does the deposit come back?",faq_11
+59,"We’re thinking of using the side yard for the rental.;It gets muddy when it rains and there are a couple of obstacles nearby.;If the crew says they can’t safely work there, what’s the policy?","In that case, would I still get reimbursed?",faq_11
+60,"I’m trying to figure out the setup spot before I confirm.;The back area might be hard to access and there’s some overhead wiring.;If they can’t set it there because of that, what happens to the booking?","If that spot doesn’t work out, do I get the fee back?",faq_11
+61,We’re planning a birthday party at the school gym.;Is that space usually okay for one of your inflatables?,Would it work in there too?,faq_12
+62,We have a hall booked for next month.;It’s for a kids party with a few games and snacks.,Could one of yours go in that kind of room?,faq_12
+63,I’m trying to sort out a venue for an overnight hire.;The weather might be bad that weekend.,Can we keep it inside instead?,faq_12
+64,Our community center has a big multipurpose room.;I’m checking what kind of setup is possible.,Do you think one would fit in there?,faq_12
+65,We have access to a gymnasium at the church.;Ceiling is pretty high and the floor is clear.,Would that be suitable for it?,faq_12
+66,We’re planning a backyard party next month.;Do you bring everything with you?,And who takes care of the actual setup?,faq_13
+67,I’m trying to figure out the day of the event.;How long do you usually need on site?,So does your team handle that part too?,faq_13
+68,We have a school fair coming up.;Is there anything we need to do before it arrives?,Or do you handle all of that on your end?,faq_13
+69,I’m comparing a few rental options.;Do you just drop it off or is there more to it?,Who handles the rest once it gets there?,faq_13
+70,Our party starts at noon.;Should we have helpers ready in advance?,Or do you take care of it yourselves?,faq_13
+71,I'm trying to plan a backyard party next month.;What do your rental windows usually look like?,"So for that day, when would it arrive and when does it get taken away?",faq_14
+72,We have an event on Saturday afternoon.;Can you work around that timing?,"And for those arrangements, what time does everything show up and leave?",faq_14
+73,I need one for a school fundraiser.;How long do people usually keep it?,"If we go with the normal setup, when would it be dropped off and collected?",faq_14
+74,My kid's birthday is coming up.;I'm comparing a few options right now.;What do the usual rental times look like?,"For the one we were just talking about, when would delivery and pickup happen?",faq_14
+75,We're still figuring out the schedule for the event.;I just want something simple.;Do you handle both drop-off and removal?,"If we book that, what does the timing usually end up being?",faq_14
+76,I’m planning a backyard party next month.;Can someone drop it off while we’re at work?,Do I need to be there for all of that?,faq_15
+77,"We have a school fundraiser coming up.;A parent might be able to stop by, but probably not me.",Would that be enough for the setup and the take-down part?,faq_15
+78,"I’m comparing a couple of rental options.;My teenager will be home, but no adults during the afternoon.",Is that okay for the whole visit?,faq_15
+79,"We’re hosting my son’s birthday in the park.;I can probably swing by at the start, but may have to leave later.",Do I have to stick around for it?,faq_15
+80,I’m booking this for Saturday.;We might be out when they arrive and when they come back for pickup.,Is that going to be a problem?,faq_15
+81,We’re looking at a Saturday party in the backyard.;What time do you usually drop things off?,"And the time you spend setting it up and taking it away, does that come out of the hours we pay for?",faq_16
+82,"I’m trying to figure out the schedule for our event.;If you arrive early, does that count against us?","So the part before the kids can actually use it and the part after, are those included in the total?",faq_16
+83,We may need it for most of the day.;I’m comparing a few rental companies.,Do those setup and pickup windows reduce the time we get to use it?,faq_16
+84,Our party starts in the afternoon.;We have a pretty tight backyard access window.,"When you’re moving it in and later taking it down, is that time part of the clock?",faq_16
+85,I want to make sure the timing works.;Can you tell me how the rental hours are counted?,"Basically, do the install and removal periods get included in that?",faq_16
+86,"We're planning a birthday party for Saturday afternoon.;If the kids want to keep playing after dark, is that possible?",Can we leave it out until the next day?,faq_17
+87,I need something for a backyard party next month.;We might start in the afternoon and clean up late.,Would it be okay to keep it overnight?,faq_17
+88,Do you do rentals for both day and evening events?;I'm trying to figure out the setup timing.,What about leaving it there after we're done?,faq_17
+89,"We're holding an event at our community center.;It would be inside, not out in the open.","If we don't pack it up that night, is that allowed?",faq_17
+90,We have a weekend party and might want extra time.;The space is covered and has doors we can close.,Can it stay through the night?,faq_17
+91,We’re booking for a birthday party in the backyard.;There will be a bunch of kids around 7 and 8.,Do we need someone watching it the whole time?,faq_18
+92,I’m comparing a few options for my niece’s party.;This one looks like it would fit our yard.,Would we need to have an older person there with it?,faq_18
+93,Can this be used at our church event?;We’ll have volunteers helping with setup and games.,"And for that, does someone have to stay by it the whole time?",faq_18
+94,I’m trying to plan the schedule for the afternoon rental.;Kids will be going in and out for a few hours.,Do we need one of us to keep an eye on it the entire time?,faq_18
+95,We’re organizing a school fundraiser.;There will be parents around but I want to be sure about the rules.,"For that setup, is someone supposed to supervise it continuously?",faq_18
+96,We’re planning a birthday party for a 7 year old.;I want something that works for a small backyard.,How many kids can fit on it at once?,faq_19
+97,I’m comparing a few options for our school event.;Some of the bigger ones looked really fun.,What’s the max for those?,faq_19
+98,We have a family reunion coming up.;I was thinking about a slide and maybe one of the combo setups.,How many people can be on them at the same time?,faq_19
+99,We’re trying to keep the line moving at our block party.;A few cousins will want to use it back to back.,"Can two kids go together, or is it just one at a time?",faq_19
+100,I saw the inflatable packages on your site.;I’m trying to figure out which one is best for a dozen kids.,What are the limits on those?,faq_19
+101,We're planning a birthday party for a mix of kids.;Is there anything we should know before we reserve one?,"What about for the little ones, are there limits on that?",faq_20
+102,My son wants one for his party.;Can adults jump in too?,"And for the kids, are there any rules about who can use it?",faq_20
+103,We have toddlers and older kids coming.;I want to make sure it's okay for both groups.,Do they all go on together or should we keep them apart?,faq_20
+104,I'm comparing a few options for our event.;We may have some grown-ups around as well.,Would that change who should be inside it?,faq_20
+105,We're setting up for a family reunion.;There will be a big age range in the group.,How does that work with the little kids and the bigger kids?,faq_20
+106,We’re bringing two kids this weekend.;Do they need any special gear?,"What about their feet, do they have to wear anything?",faq_21
+107,I’m booking for my daughter’s birthday.;There will be a bunch of little ones running around.,Do they need socks for that or can they go barefoot?,faq_21
+108,My son hates shoes inside.;Is that going to be a problem?,"For this place, what do they need on their feet?",faq_21
+109,We’ve got a school group coming.;I’m trying to get the rules straight before I send the parent note.,Should I tell them to bring anything for their feet?,faq_21
+110,We’re almost ready for the party.;I just want to make sure the kids are dressed right.,"And for their feet, is it okay if they just take everything off?",faq_21
+111,We're planning my son's birthday next month;Can grown-ups hop in too while the kids play?,"What about the bigger ones, are they okay for us?",faq_22
+112,I saw the castle on your site and it looks fun;My husband wanted to try it as well,"Is that allowed, or is it just for the little ones?",faq_22
+113,We have a family picnic coming up;I was wondering if I could join the kids on it,"Would that be fine on the regular setup, or not?",faq_22
+114,I'm booking for a school fair;There will be parents around helping out,"Can they use the inflatable too, or should they stay off?",faq_22
+115,Do you have anything for a mixed age party;Some of the guests are adults,"Can they go on the same one, or do you need a different setup?",faq_22
+116,We’re booking for my daughter’s birthday next month.;I’m trying to figure out what we need to leave at home.,"Can we bring those along, or should they stay out?",faq_23
+117,We have a school event coming up.;The kids will probably arrive with all kinds of party stuff.,Which of those can’t go in with them?,faq_23
+118,I’m making a checklist for the rental.;Do you have any rules about what the children can wear or bring inside?,What should be removed before they get in?,faq_23
+119,We’re planning a backyard party for six-year-olds.;I want to make sure the setup is safe and follows your rules.,What needs to be left outside?,faq_23
+120,My son asked if he could jump in after cake.;I’m not sure what’s allowed once the party starts.,So what exactly is off limits in there?,faq_23
+121,We’re booking for a birthday party next month.;Are there any items we should avoid bringing near it?,Why is that stuff not allowed?,faq_24
+122,My kids love those party spray cans.;Can we use them at the event?,What’s the reason they’re banned around it?,faq_24
+123,I’m sending out the party rules now.;Anything special to keep off the setup?,"And the colorful spray thing, why can’t we use that?",faq_24
+124,We’ll have a lot of kids around.;Do you have any safety do’s and don’ts?,"Also, why is that spray product prohibited?",faq_24
+125,I saw some of the guests bringing party accessories.;Do you want us to mention any no-go items?,What’s the issue with that stringy spray again?,faq_24
+126,We're planning a school fun day and need a couple of inflatables.;Do you provide the setup and collection too?,And are you covered for that kind of event?,faq_25
+127,We're booking for a church summer fair.;Do you have anything suitable for a mixed-age crowd?,"Also, is your company covered if something happens?",faq_25
+128,I might hire for a public community day.;Do you work with councils and charities?,"If we go ahead, can you show proof of it?",faq_25
+129,We're comparing a few suppliers for our school's sports day.;Can you send over the usual hire details?,"Before we decide, what about your cover?",faq_25
+130,We need something for an outdoor fundraiser next month.;Can you handle larger events like that?,"One more thing, are you insured for it?",faq_25
+131,I'm planning a birthday party for my son and a few cousins;Do you bring the inflatable and set it up too,"And for that, who’s on the hook if someone gets hurt or something gets damaged?",faq_26
+132,We’re looking at a weekend party rental;I want to make sure I understand the paperwork first;Is there anything I need to sign before the event,"Also, if anything happens while it’s being used, how does that part work?",faq_26
+133,Can we have one delivered for a school fundraiser;We’ll have a lot of kids using it;Do you need the area cleared before you arrive,"What about if one of them gets injured while it’s up, who handles that?",faq_26
+134,I’m comparing a few options for my daughter’s party;This is my first time renting one of these;Do you require a deposit,"And if there’s any damage or an accident, is that on me or you?",faq_26
+135,We’re hosting a block party next month;I just want to know what to expect;Is there a contract involved,"If something goes wrong while people are using it, how is responsibility handled?",faq_26
+136,We’re planning a school fair next month.;Do you cover all the paperwork for that?,Would I need to sort anything extra on my side for it?,faq_27
+137,I’m booking for a community fundraiser.;It’ll be at a local park with lots of people around.,"For something like that, should I arrange my own cover?",faq_27
+138,We might use it at a birthday party in a hall.;A few parents will be helping out too.,Do I need to get anything for myself as well?,faq_27
+139,This is for a big corporate event.;There’ll be the public coming through during the day.;I’m trying to work out what else we need besides the hire.,Would we be expected to have our own insurance for that?,faq_27
+140,We’re still deciding between the garden and the village green.;The green would be better for space.,"If we go with that option, should I look into my own insurance?",faq_27
+141,"I'm planning a birthday party outdoors.;The backyard is too small, so I'm looking at a nearby park.",Is that allowed there?,faq_28
+142,We want to rent one for my son's school fundraiser.;The event would be held in a public green space.,Do I need to arrange anything first?,faq_28
+143,Can you deliver to a city park?;It would just be for a few hours in the afternoon.;We'd also have a small group of kids there.,Would there be any extra paperwork for that?,faq_28
+144,I'm trying to figure out the best spot for our event.;It might be at the local recreation area instead of our yard.;I've heard some places have rules.,So can I put it up there?,faq_28
+145,We're comparing a few venue options.;One of them is a public park by the lake.,"If we use that one, what do we have to sort out beforehand?",faq_28
+146,We’re thinking of using the town square for a party setup.;Would that be okay for a weekend event?,"If we do it there, do I need anything official first?",faq_29
+147,I’m planning a small community event outside.;It would be on land owned by the city.,"For that spot, do I need special approval before we set it up?",faq_29
+148,Can you do a setup near the park entrance?;It’s the open area by the sidewalk.,"Before you bring it out there, is there paperwork we need?",faq_29
+149,We found a good place by the library.;It’s public and easy for families to get to.;I just want to make sure it’s allowed.,"If we use that area, what do we need to sort out first?",faq_29
+150,We’re looking at a street-side space for the event.;The location belongs to the municipality.,Would there be any requirement from them before we set it up?,faq_29
+151,"We have a backyard party next month and I'm checking a few things.;If something gets torn while the kids are using it, what happens?","And if that happened, who would cover it?",faq_30
+152,I'm comparing rental companies for my son's birthday.;Do you require a deposit or anything for the setup?,"Also, if it ends up getting messed up, how is that handled?",faq_30
+153,Can I keep the inflatable overnight if the weather is good?;We're planning a pretty big crowd and I want to be careful about the rules.,"If we don't follow one of those rules and something happens, what's the policy?",faq_30
+154,"We have a lot of little kids coming, so I'm reading over the safety info.;What should I know before I book?","And if it takes a hit during the party, what would you charge for that?",faq_30
+155,"I just want to make sure I'm understanding the rental terms.;Is normal use okay, or do I need to worry about every little mark?","Right, but if it gets damaged from how we use it, what then?",faq_30
+156,We’re booking for a birthday party next month.;Do you handle setup and pickup too?,"And after we’re done with it, do we need to do anything special before it goes back?",faq_31
+157,I’m comparing a few rental options.;This one looks like it would fit our garden.,"If it comes back a bit messy, what happens then?",faq_31
+158,We have kids coming over on Saturday.;I’m trying to keep the whole day simple.,"When it’s over, do we just send it back as it is?",faq_31
+159,How long can we keep it for if the weather stays good?;And is there anything we should avoid while it’s here?,"Once we’re finished with it, do we need to clean it ourselves first?",faq_31
+160,My son wants a superhero party.;I’m just sorting out the practical stuff now.,"Before it gets collected, is there any cleanup we’re expected to do?",faq_31
+161,We're thinking about booking for Saturday.;Is there anything we should know if something goes wrong during setup?,"And if it starts acting up, what should we do?",faq_32
+162,Do you deliver and set everything up?;I just want to know what happens if it stops working once it's out there.,Then what are we supposed to do with it?,faq_32
+163,"We're renting for a birthday party.;If there is a problem with the unit, can we just fix it ourselves?",What if it glitches out while we're using it?,faq_32
+164,"How early do you usually arrive?;Also, if anything seems off, what's the process?",And if the equipment quits on us?,faq_32
+165,I'm comparing a couple of rental options.;We want something easy in case there is a hiccup.,"So if that happened, what would you want us to do first?",faq_32
+166,We're booking the castle for Saturday afternoon.;What happens if the weather turns bad?,"And if it starts raining, what do I do with it?",faq_33
+167,We might have a few showers later in the day.;Do we need any special setup if that happens?,"If it does drizzle, should I shut that thing off?",faq_33
+168,We have a backyard party planned.;I'm a little worried about the forecast.,"If rain shows up, do I leave it on or stop it?",faq_33
+169,The rental is for a kid's birthday outdoors.;I want to make sure we handle it right if the weather changes.,"When the rain starts, what should we do with the blower?",faq_33
+170,I'll be setting it up in the afternoon.;Is there anything I should watch for with bad weather?,"And if it gets wet, do I keep it going or not?",faq_33
+171,I'm comparing a few places for my daughter's party.;What does the base price cover?,"Does it come with everything, or are there extra charges for the rest?",faq_34
+172,We need something for a school event next month.;Can you tell me what's covered in the quote?,I'm mainly wondering what all is part of it and what isn't.,faq_34
+173,"Hi, I'm checking availability for Saturday.;I also need to know how the total is usually broken down.;Is there anything I should expect besides the main item?","And for the other parts, are they normally wrapped into that amount too?",faq_34
+174,We're planning a backyard birthday.;I want to keep the budget simple.;Do you usually handle the heavy lifting?,So what all is typically handled in that price?,faq_34
+175,We're just starting to plan the event.;I don't want any surprises on the invoice.;Can you explain the standard package?,"Would that usually include the rest, or are some bits billed separately?",faq_34
+176,We’re comparing a few options for my daughter’s party.;Can you help me figure out the total cost if we’re outside town?,Anything else I should expect on top of that?,faq_35
+177,I’m trying to keep the budget simple.;We might need someone to put it on the patio too.,Could there be extra charges with that setup?,faq_35
+178,"I’ve got the date picked out already.;If we end up changing our minds late, is that a problem?",Would that affect the price at all?,faq_35
+179,We’re booking for a backyard event next month.;Do you also bring power if there isn’t an outlet close by?,What would that add to the bill?,faq_35
+180,"We only need it for a few hours, but the party might run long.;I’m just trying to avoid surprises.","If we go past the planned time, what happens?",faq_35
+181,We’re planning a birthday party for next month;I’m trying to keep the budget reasonable,What does it usually run for one of those?,faq_36
+182,Do you rent for backyard parties?;I need something for about 20 kids,Roughly how much would that be?,faq_36
+183,We’re comparing options for a school fair;Some of the bigger setups looked great,What’s the price range on those?,faq_36
+184,I might need one for a weekend;The place is out near the coast,Would the total be different for that?,faq_36
+185,We have a small garden and a short guest list;I was also wondering about the bigger inflatable with extras,How much are the different ones again?,faq_36
+186,We’re looking at renting for my son’s birthday.;Do you have any options that are good for younger kids?,How do you handle cleaning those after a party?,faq_37
+187,I’m comparing a few rental companies.;My kid has allergies so I’m being careful.,What’s your process for keeping them sanitary?,faq_37
+188,Can we book one for next Saturday?;It’ll be a small backyard party with about 10 kids.;I just want to make sure everything is safe.,And what about the cleaning part?,faq_37
+189,We’re planning a school event.;The parents on the committee asked about hygiene.,Do you disinfect them between rentals?,faq_37
+190,I saw your pictures and the setups look great.;I’m worried about what happens after each event.,How are those handled once they come back?,faq_37
+191,We’ve got a flat spot in the garden for the hire.;Could it be shifted a bit after setup if needed?,What if we need to move it a little later?,faq_38
+192,"I’m checking space in the back yard.;If it ends up in the wrong place, can we just slide it over?",Or does it have to stay where it is once they put it down?,faq_38
+193,We’re booking for Saturday.;I might want it closer to the patio once everything is in place.,Can we relocate it after they’ve finished?,faq_38
+194,"The driveway and lawn both might work.;If we choose one and change our minds, is it okay to reposition it?",Is that something we can do ourselves later?,faq_38
+195,I’m trying to plan the layout for the party.;There’s a chance I’ll want to adjust it after delivery.,"If that happens, can I move it then?",faq_38
+196,"We’re booking for Saturday afternoon.;If the party runs long, can we keep it a little later?","And if I need to extend it that day, what do I do?",faq_39
+197,I’m trying to plan the schedule for our event.;We may need more time if cleanup takes longer than expected.;Is that something you can usually work with?,What happens if I need to add more time on the day?,faq_39
+198,We have a school event coming up.;I’m not sure how strict the timing will be.;Might need some flexibility just in case.,"If that happens, who should I contact?",faq_39
+199,I was looking at the rental window.;There’s a chance the kids will want to use it longer.;What are the options if we’re not done yet?,"So if we need extra time that day, how does that work?",faq_39
+200,Our backyard party might go late.;I want to make sure I know the process ahead of time.,"If we want to keep it longer, what should I do?",faq_39
+201,"We’re thinking about a party next weekend.;If it ends up being chilly, is that still okay?",Could we still use that one without hooking anything up?,faq_40
+202,I’m comparing a few inflatables for my son’s birthday.;The forecast says it might be cool that day.,Would that setup still work for us then?,faq_40
+203,We have a backyard event coming up.;I wanted something fun for the kids but the weather looks mild.,Can we run that as-is if it stays like that?,faq_40
+204,Is the tall one only for summer weather?;We’re not sure it will be warm enough.,Would it still be usable in that case?,faq_40
+205,"I saw the big slide on your site.;If it’s not really hot, I’m wondering about using it anyway.",Can it be set up the other way?,faq_40

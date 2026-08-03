@@ -6,7 +6,7 @@ from src.config import DEFAULT_TUNED_PARAMS_PATH, load_tuned_params
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 TUNED_PARAMS_FILE = PROJECT_ROOT / "tuned_params.json"
 
-REQUIRED_KEYS = ["k", "rrf_k", "cat_weight", "bm25_k1", "bm25_b"]
+REQUIRED_KEYS = ["k", "rrf_k", "cat_weight", "bm25_k1", "bm25_b", "rewrite_enabled", "history_rewrite_enabled", "history_turns"]
 
 
 def test_tuned_params_file_exists_at_repo_root():
@@ -37,6 +37,9 @@ def test_load_tuned_params_falls_back_when_file_missing(tmp_path):
         "cat_weight": 0,
         "bm25_k1": 1.5,
         "bm25_b": 0.75,
+        "rewrite_enabled": False,
+        "history_rewrite_enabled": True,
+        "history_turns": 4,
     }
 
 
@@ -49,3 +52,4 @@ def test_load_tuned_params_overlays_partial_file(tmp_path):
     assert params["rrf_k"] == 60
     assert params["cat_weight"] == 0
     assert params["bm25_b"] == 0.75
+    assert params["rewrite_enabled"] is False

@@ -9,6 +9,9 @@ _FALLBACK_DEFAULTS = {
     "cat_weight": 0,
     "bm25_k1": 1.5,
     "bm25_b": 0.75,
+    "rewrite_enabled": False,
+    "history_rewrite_enabled": True,
+    "history_turns": 4,
 }
 
 
