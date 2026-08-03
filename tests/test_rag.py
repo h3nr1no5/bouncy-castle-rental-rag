@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 import pytest
 
-from src.rag import answer_question, rewrite_query
+from src.rag import answer_question, rewrite_query, rewrite_query_with_history, _format_history_for_prompt
 
 SAMPLE_CONTEXTS = [
     {
@@ -339,3 +339,201 @@ class TestAnswerQuestion:
         mock_search.assert_called_once()
         _, kwargs = mock_search.call_args
         assert kwargs.get("k") == 3
+
+    def test_answer_question_multi_turn_rewrite_passes_rewritten_query_to_search(self):
+        """With history_rewrite_enabled=True and non-empty history, search() receives the rewritten query and ask_llm receives raw question for final answer."""
+        MULTI_TURN_REWRITE_RESULT = {
+            "response": "bouncy castle weekend rental price cost",
+            "model": "llama-3.3-70b-versatile",
+            "provider": "groq",
+            "latency": 0.3,
+            "cost": 0.000050,
+            "tokens": {"prompt": 50, "completion": 10, "total": 60},
+        }
+        history = [{"role": "user", "content": "Do you rent bouncy castles?"}]
+        
+        with (
+            patch("src.rag.search", return_value=SAMPLE_CONTEXTS) as mock_search,
+            patch("src.rag.ask_llm", side_effect=[MULTI_TURN_REWRITE_RESULT, LLM_RESULT]) as mock_llm,
+            patch("src.rag.load_tuned_params", return_value={"history_rewrite_enabled": True, "history_turns": 4, "rewrite_enabled": False, "k": 5, "rrf_k": 1, "cat_weight": 0, "bm25_k1": 1.5, "bm25_b": 0.75}),
+        ):
+            answer_question(
+                question="how much for a weekend?",
+                history=history,
+                groq_model=None,
+                openai_model=None,
+            )
+
+        # search() should be called with the rewritten query from multi-turn rewrite
+        mock_search.assert_called_once()
+        args, _ = mock_search.call_args
+        assert args[0] == "bouncy castle weekend rental price cost"
+        
+        # ask_llm() should be called twice: once for multi-turn rewrite, once for final answer
+        assert mock_llm.call_count == 2
+        
+        # First call: multi-turn rewrite with history
+        _, kwargs1 = mock_llm.call_args_list[0]
+        assert "how much for a weekend?" in kwargs1["user_message"]
+        assert "Do you rent bouncy castles?" in kwargs1["user_message"]
+        
+        # Second call: final answer with RAW question as user_message
+        _, kwargs2 = mock_llm.call_args_list[1]
+        assert kwargs2["user_message"] == "how much for a weekend?"
+
+    def test_answer_question_empty_history_uses_single_turn(self):
+        """With history=None or history=[], rewrite_enabled=False: search gets raw question; ask_llm called once (no rewrite call)."""
+        # Test history=None
+        with (
+            patch("src.rag.search", return_value=SAMPLE_CONTEXTS) as mock_search,
+            patch("src.rag.ask_llm", return_value=LLM_RESULT) as mock_llm,
+            patch("src.rag.load_tuned_params", return_value={"rewrite_enabled": False, "k": 5, "rrf_k": 1, "cat_weight": 0, "bm25_k1": 1.5, "bm25_b": 0.75}),
+        ):
+            answer_question(question="cost", history=None)
+
+        mock_search.assert_called_once()
+        args, _ = mock_search.call_args
+        assert args[0] == "cost"
+        assert mock_llm.call_count == 1
+
+        # Test history=[]
+        with (
+            patch("src.rag.search", return_value=SAMPLE_CONTEXTS) as mock_search,
+            patch("src.rag.ask_llm", return_value=LLM_RESULT) as mock_llm,
+            patch("src.rag.load_tuned_params", return_value={"rewrite_enabled": False, "k": 5, "rrf_k": 1, "cat_weight": 0, "bm25_k1": 1.5, "bm25_b": 0.75}),
+        ):
+            answer_question(question="cost", history=[])
+
+        mock_search.assert_called_once()
+        args, _ = mock_search.call_args
+        assert args[0] == "cost"
+        assert mock_llm.call_count == 1
+
+    def test_answer_question_history_truncated_to_history_turns(self):
+        """With history_turns=2 and 4 prior turns (8 messages), search receives rewritten query using last 2 messages; ask_llm called twice."""
+        MULTI_TURN_REWRITE_RESULT = {
+            "response": "bouncy castle weekend rental price cost",
+            "model": "llama-3.3-70b-versatile",
+            "provider": "groq",
+            "latency": 0.3,
+            "cost": 0.000050,
+            "tokens": {"prompt": 50, "completion": 10, "total": 60},
+        }
+        # 4 prior turns (8 messages), but history_turns=2 means only last 2 MESSAGES should be used
+        history = [
+            {"role": "user", "content": "Do you rent bouncy castles?"},
+            {"role": "assistant", "content": "Yes, we do."},
+            {"role": "user", "content": "What sizes are available?"},
+            {"role": "assistant", "content": "Small, medium, large."},
+            {"role": "user", "content": "How much for a day?"},
+            {"role": "assistant", "content": "$100 per day."},
+            {"role": "user", "content": "Do you deliver?"},
+            {"role": "assistant", "content": "Yes, within 50 miles."},
+        ]
+
+        with (
+            patch("src.rag.search", return_value=SAMPLE_CONTEXTS) as mock_search,
+            patch("src.rag.ask_llm", side_effect=[MULTI_TURN_REWRITE_RESULT, LLM_RESULT]) as mock_llm,
+            patch("src.rag.load_tuned_params", return_value={"history_rewrite_enabled": True, "history_turns": 2, "rewrite_enabled": False, "k": 5, "rrf_k": 1, "cat_weight": 0, "bm25_k1": 1.5, "bm25_b": 0.75}),
+        ):
+            answer_question(
+                question="how much for a weekend?",
+                history=history,
+                groq_model=None,
+                openai_model=None,
+            )
+
+        # search() should be called with the rewritten query
+        mock_search.assert_called_once()
+        args, _ = mock_search.call_args
+        assert args[0] == "bouncy castle weekend rental price cost"
+
+        # ask_llm() should be called twice: once for multi-turn rewrite, once for final answer
+        assert mock_llm.call_count == 2
+
+        # First call: multi-turn rewrite with history (should only include last 2 messages = 1 turn)
+        _, kwargs1 = mock_llm.call_args_list[0]
+        assert "how much for a weekend?" in kwargs1["user_message"]
+        # Should include the last 2 messages: "Do you deliver?" / "Yes, within 50 miles."
+        assert "Do you deliver?" in kwargs1["user_message"]
+        assert "Yes, within 50 miles." in kwargs1["user_message"]
+        # Should NOT include earlier messages
+        assert "Do you rent bouncy castles?" not in kwargs1["user_message"]
+        assert "What sizes are available?" not in kwargs1["user_message"]
+        assert "How much for a day?" not in kwargs1["user_message"]
+
+        # Second call: final answer with RAW question as user_message
+        _, kwargs2 = mock_llm.call_args_list[1]
+        assert kwargs2["user_message"] == "how much for a weekend?"
+
+    def test_answer_question_multi_turn_rewrite_failure_falls_back_to_raw(self):
+        """When multi-turn rewrite raises Exception, falls back to single-turn rewrite which also fails, so search receives raw question; no exception propagates."""
+        history = [{"role": "user", "content": "Do you rent bouncy castles?"}]
+
+        with (
+            patch("src.rag.search", return_value=SAMPLE_CONTEXTS) as mock_search,
+            patch("src.rag.ask_llm", side_effect=[Exception("boom"), Exception("boom"), LLM_RESULT]) as mock_llm,
+            patch("src.rag.load_tuned_params", return_value={"history_rewrite_enabled": True, "history_turns": 4, "rewrite_enabled": False, "k": 5, "rrf_k": 1, "cat_weight": 0, "bm25_k1": 1.5, "bm25_b": 0.75}),
+        ):
+            answer_question(
+                question="how much for a weekend?",
+                history=history,
+                groq_model=None,
+                openai_model=None,
+            )
+
+        # search() should be called with the RAW question (fallback after both rewrites fail)
+        mock_search.assert_called_once()
+        args, _ = mock_search.call_args
+        assert args[0] == "how much for a weekend?"
+
+        # ask_llm() should be called 3 times: multi-turn rewrite fails, single-turn rewrite fails, final answer succeeds
+        assert mock_llm.call_count == 3
+
+    def test_answer_question_malformed_history_degraded_safely(self):
+        """Malformed history entries (missing role/content, non-string content, unknown role) don't raise; search gets raw question with rewrite_enabled=False."""
+        malformed_history = [
+            {"role": "user"},  # missing content
+            {"content": "hello"},  # missing role
+            {"role": "user", "content": 123},  # non-string content
+            {"role": "unknown", "content": "test"},  # unknown role
+            {"role": "assistant", "content": None},  # None content
+            "not a dict",  # not a dict at all
+        ]
+
+        with (
+            patch("src.rag.search", return_value=SAMPLE_CONTEXTS) as mock_search,
+            patch("src.rag.ask_llm", return_value=LLM_RESULT) as mock_llm,
+            patch("src.rag.load_tuned_params", return_value={"rewrite_enabled": False, "k": 5, "rrf_k": 1, "cat_weight": 0, "bm25_k1": 1.5, "bm25_b": 0.75}),
+        ):
+            answer_question(question="cost", history=malformed_history)
+
+        # Should not raise, search gets raw question
+        mock_search.assert_called_once()
+        args, _ = mock_search.call_args
+        assert args[0] == "cost"
+        assert mock_llm.call_count == 1
+
+    def test_answer_question_history_rewrite_disabled_uses_raw(self):
+        """With history_rewrite_enabled=False and non-empty history, search receives raw question; ask_llm called once."""
+        history = [{"role": "user", "content": "Do you rent bouncy castles?"}]
+
+        with (
+            patch("src.rag.search", return_value=SAMPLE_CONTEXTS) as mock_search,
+            patch("src.rag.ask_llm", return_value=LLM_RESULT) as mock_llm,
+            patch("src.rag.load_tuned_params", return_value={"history_rewrite_enabled": False, "history_turns": 4, "rewrite_enabled": False, "k": 5, "rrf_k": 1, "cat_weight": 0, "bm25_k1": 1.5, "bm25_b": 0.75}),
+        ):
+            answer_question(
+                question="how much for a weekend?",
+                history=history,
+                groq_model=None,
+                openai_model=None,
+            )
+
+        # search() should be called with the RAW question (no rewrite)
+        mock_search.assert_called_once()
+        args, _ = mock_search.call_args
+        assert args[0] == "how much for a weekend?"
+
+        # ask_llm() should be called only once (no rewrite call)
+        assert mock_llm.call_count == 1

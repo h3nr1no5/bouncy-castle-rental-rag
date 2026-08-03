@@ -1,5 +1,5 @@
 import os
-from typing import Literal
+from typing import Literal, Union
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -28,6 +28,7 @@ app.add_middleware(
 
 class ChatRequest(BaseModel):
     question: str = Field(..., min_length=1)
+    history: Union[list[dict], None] = Field(default=None)
 
 
 class FeedbackRequest(BaseModel):
@@ -59,7 +60,7 @@ def health():
 @app.post("/api/chat")
 def chat(req: ChatRequest):
     try:
-        result = answer_question(question=req.question)
+        result = answer_question(question=req.question, history=req.history)
         result["interaction_id"] = _log_interaction(
             question=req.question,
             answer=result["answer"],

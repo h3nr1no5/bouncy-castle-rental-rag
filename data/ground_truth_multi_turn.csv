@@ -1,0 +1,13 @@
+conversation_id,prior_user_turns,follow_up_question,document_id
+1,Do you rent bouncy castles?,How much for a weekend?,faq_36
+2,What does the rental price include?,Any hidden fees on top of that?,faq_35
+3,I want to reserve one for my son's birthday,Do I need to pay a deposit for it?,faq_1
+4,Do you rent bouncy castles for parties?,How early should I book?,faq_0
+5,I'd like to rent a castle for next month,What if I need to cancel?,faq_5
+6,Can I book a castle for my garden party?,What happens if it rains that day?,faq_6
+7,What's your cancellation policy?,When can I cancel if the weather looks bad?,faq_7
+8,We booked a castle for Saturday,What time will it be delivered?,faq_14
+9,Do you deliver castles to homes?,Who sets it up when it arrives?,faq_13
+10,The castle is being delivered while I'm at work,Do I need to be there for it?,faq_15
+11,We need the castle for a two-day event,Can we keep it overnight?,faq_17
+12,How do I pay for the rental?,Can I use a card?,faq_2
