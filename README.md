@@ -73,11 +73,10 @@ uv run pytest
 
 ## Deployment & architecture
 
-The quick-start above is all you need to run locally. For the longer-form deployment and architecture detail:
+The quick-start above is all you need to run locally. For the longer-form deployment, architecture, and monitoring detail, see the dedicated docs:
 
-- **Render deployment** — see [`render.yaml`](render.yaml) and the [`Dockerfile`](Dockerfile)
-- **Grafana monitoring** — see [`grafana/`](grafana/) (provisioned dashboards, datasource, seed script)
-- **Hybrid search / RRF re-ranking** — see [`src/search.py`](src/search.py)
-- **LLM provider (Groq primary, OpenAI fallback)** — see [`src/llm.py`](src/llm.py)
+- **Deployment (Render Blueprint, secrets, index pre-baking, DB fallback, data migration)** — [`_docs/deployment.md`](_docs/deployment.md)
+- **Architecture (hybrid search / RRF re-ranking, LLM provider fallback)** — [`_docs/architecture.md`](_docs/architecture.md)
+- **Monitoring (Grafana runbook, 6-panel dashboard, useful commands)** — [`_docs/monitoring.md`](_docs/monitoring.md)
 
-> These topics are being consolidated into dedicated docs (`_docs/deployment.md`, `_docs/architecture.md`, `_docs/monitoring.md`) under issue #68; the in-repo files above are the source of truth until then.
+The in-repo files remain the source of truth: [`render.yaml`](render.yaml), the [`Dockerfile`](Dockerfile), [`grafana/`](grafana/), [`src/search.py`](src/search.py), [`src/llm.py`](src/llm.py).
